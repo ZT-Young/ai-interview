@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * 设计令牌。
+ *
+ * 命名与结构沿用 shadcn/ui 约定（HSL 三元组，由 tailwind.config.ts 包成 hsl()），
+ * 这样新增组件时可以直接复用既有语义类，不必引入第二套视觉。
+ *
+ * 本轮调整（C 端产品观感）：
+ * - `primary` 由近黑改为**靛蓝**：原值 222.2 47.4% 11.2% 几乎等于黑色，
+ *   按钮与链接缺少「可点击」的视觉暗示；靛蓝同时与「求职/成长」的产品语义更贴。
+ * - 新增 `success` / `warning` / `info` 语义色：此前成功或警告状态只能写
+ *   `text-emerald-600` 这类 Tailwind 字面色，深色模式下对比度不可控且散落各处。
+ * - 新增六维图表色板 `--chart-1..6`：报告页雷达图与维度条需要**稳定的颜色顺序**，
+ *   写死在组件里会导致同一维度在不同位置颜色不一致。
+ * - `--radius` 0.5 → 0.625rem：卡片与按钮观感更柔和。
+ */
+@layer base {
+  :root {
+    --background: 210 40% 99%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* 品牌主色：靛蓝 */
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --primary-muted: 243 100% 97%;
+
+    --secondary: 220 20% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 220 20% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 243 100% 97%;
+    --accent-foreground: 243 60% 40%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 60% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 95% 44%;
+    --warning-foreground: 0 0% 100%;
+    --info: 199 89% 42%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 220 16% 91%;
+    --input: 220 16% 88%;
+    /* 焦点环跟随主色；此前跟随近黑，与主色不一致 */
+    --ring: 243 75% 59%;
+
+    --radius: 0.625rem;
+
+    /* 六维评分色板（顺序固定，雷达图/条形图/徽标共用，保证同一维度同色） */
+    --chart-1: 243 75% 59%;
+    --chart-2: 199 89% 48%;
+    --chart-3: 152 60% 40%;
+    --chart-4: 32 95% 52%;
+    --chart-5: 280 65% 60%;
+    --chart-6: 340 75% 55%;
+  }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 98%;
+    --card: 222 40% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 40% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 243 80% 68%;
+    --primary-foreground: 222 47% 8%;
+    --primary-muted: 243 40% 18%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 66%;
+    --accent: 243 35% 20%;
+    --accent-foreground: 243 80% 82%;
+
+    --destructive: 0 63% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 45% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 85% 52%;
+    --warning-foreground: 222 47% 8%;
+    --info: 199 80% 52%;
+    --info-foreground: 222 47% 8%;
+
+    --border: 217 33% 20%;
+    --input: 217 33% 22%;
+    --ring: 243 80% 68%;
+
+    --chart-1: 243 80% 68%;
+    --chart-2: 199 80% 58%;
+    --chart-3: 152 50% 50%;
+    --chart-4: 32 90% 60%;
+    --chart-5: 280 65% 70%;
+    --chart-6: 340 75% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* 中文字体栈：优先系统 UI 字体，保证 macOS/Windows/移动端一致 */
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      'PingFang SC',
+      'Hiragino Sans GB',
+      'Microsoft YaHei',
+      'Noto Sans SC',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 全站统一焦点可见性（无障碍：键盘用户必须能看清当前焦点） */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* 长文与证据引用更易读 */
+  p,
+  li {
+    @apply leading-relaxed;
+  }
+}
+
+@layer utilities {
+  /* 骨架屏微光：比纯 animate-pulse 更能传达「正在加载」 */
+  .shimmer {
+    background-image: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted) / 0.55) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+
+  /* 移动端底部安全区（面试房间等贴底操作区使用） */
+  .safe-bottom {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
+  }
+}

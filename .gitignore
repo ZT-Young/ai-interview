@@ -1,0 +1,83 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+/playwright-report
+/test-results
+/blob-report
+/playwright/.cache
+
+# next.js
+/.next/
+# dev 模式独立产物目录（见 next.config.mjs distDir）：与 .next 分开，
+# 避免 `pnpm dev` 与 `pnpm build` 并行时互相破坏 chunk 清单
+/.next-dev/
+/out/
+
+# production
+/build
+
+# 本地开发用的数据目录
+# - .local-pg：嵌入式 PostgreSQL 数据目录（scripts/local-pg.mjs）
+# - .local-storage：本地文件系统存储（lib/storage/local.ts，未配 S3 时开发环境回退用它）
+/.local-pg/
+/.local-storage/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env
+.env*.local
+.env.development
+.env.production
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# 个人简历样本（**含真实手机号与邮箱，切勿公开**）
+#
+# 这几个文件是开发期用来手工验证「简历解析」链路的真实简历，
+# 每个文件含 2 个手机号 + 1 个邮箱，属个人敏感信息。
+# 代码与测试**没有任何地方引用**它们（测试用的是 tests/fixtures/documents.ts
+# 里程序化生成的 PDF/DOCX），因此排除出仓库不影响任何功能。
+# 需要样本时请用夹具生成，不要把真实简历提交上来。
+/简历_*.md
+/简历_*.html
+
+# DSH harness runtime (不属于本项目，勿提交)
+/runtimes/
+/DshWeb.exe
+/WebView2Loader.dll
+/*.cmd
+/*.vbs
+
+# 一次性临时文件（提交信息、诊断脚本等），不应入库
+# 踩过的坑：`git add -A` 会把工作区里的临时文件一起暂存，
+# 因此写这类文件时统一用下划线前缀，并在提交前确认。
+/_cm*.txt
+/_commitmsg.txt
+/_squash.txt
+/_*.mjs
+/_*.mts
