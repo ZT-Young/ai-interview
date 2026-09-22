@@ -63,8 +63,14 @@ next-env.d.ts
 # 代码与测试**没有任何地方引用**它们（测试用的是 tests/fixtures/documents.ts
 # 里程序化生成的 PDF/DOCX），因此排除出仓库不影响任何功能。
 # 需要样本时请用夹具生成，不要把真实简历提交上来。
-/简历_*.md
-/简历_*.html
+#
+# 现已归档到 docs/samples/（该目录的 README 与 .gitkeep 会入库，
+# 简历文件本身不入库）。通配写法覆盖任意层级，故不加前导斜杠。
+简历_*.md
+简历_*.html
+
+# 浏览器/系统下载残留目录，不属于项目
+/Downloads/
 
 # DSH harness runtime (不属于本项目，勿提交)
 /runtimes/

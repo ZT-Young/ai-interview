@@ -1,0 +1,2 @@
+# 占位文件：让 git 保留 docs/samples/ 目录本身。
+# 本目录下的简历样本被 .gitignore 的 /简历_* 规则排除，不会入库，详见同目录 README.md。

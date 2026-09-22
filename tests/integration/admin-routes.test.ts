@@ -9,7 +9,7 @@ import {
   getUserDetail,
   listUsers,
   MAX_FREE_CREDITS,
-} from '@/lib/services/admin-service'
+} from '@/lib/services/handlers/admin-service'
 
 import {
   createTestUser,
@@ -84,7 +84,7 @@ describe.skipIf(!hasTestDatabase())(
         const db = getDb()
 
         // 直接调用注册服务，并故意多传 isAdmin —— 服务端应忽略它
-        const { register } = await import('@/lib/services/auth-service')
+        const { register } = await import('@/lib/services/handlers/auth-service')
         const result = await register({
           email,
           password: 'Test-Password-123',
