@@ -4,7 +4,7 @@
 最后生成评分报告与提升建议。
 
 > 开发规范与 V1 范围见 [AGENTS.md](./AGENTS.md)。
-> 数据模型见 [docs/DATA_MODEL.md](./docs/DATA_MODEL.md)，技术架构见 [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)。
+> 数据模型见 [docs/engineering/DATA_MODEL.md](./docs/engineering/DATA_MODEL.md)，技术架构见 [docs/engineering/ARCHITECTURE.md](./docs/engineering/ARCHITECTURE.md)。
 
 ## 当前进度
 
@@ -82,7 +82,7 @@ Phase 2（简历/JD 解析）起必需：
 | `S3_ENDPOINT` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` / `S3_BUCKET` / `S3_REGION` | S3 兼容对象存储（R2 / S3 / MinIO） |
 | `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` | OpenAI 兼容接口；**图片解析要求模型支持图片输入** |
 
-其余变量（ASR）在 Phase 3 才需要，清单见 `.env.example` 与 [docs/ARCHITECTURE.md §5](./docs/ARCHITECTURE.md)。
+其余变量（ASR）在 Phase 3 才需要，清单见 `.env.example` 与 [docs/engineering/ARCHITECTURE.md §5](./docs/engineering/ARCHITECTURE.md)。
 
 > `AUTH_SECRET` 一旦更换，所有已登录会话立即失效。
 
@@ -332,46 +332,75 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## 目录结构
 
+八个顶层目录，**一个目录一个职责**。不知道该把代码放哪时，查下表的「放什么」列。
+
+| 目录 | 一句话职责 | 放什么 | 不放什么 |
+| --- | --- | --- | --- |
+| `app/` | 路由与页面 | 页面（`page.tsx`）、接口（`api/**/route.ts`）、布局、全局样式 | 业务规则、prompt、数据库查询 |
+| `components/` | UI 组件 | `ui/` 无业务语义的原子组件；`features/<领域>/` 带业务的组件 | 数据获取、接口调用逻辑 |
+| `lib/` | 全部业务逻辑 | AI、解析、存储、支付、鉴权、业务用例、校验 | React 组件、页面 |
+| `db/` | 数据库 | Drizzle schema（12 张表）、迁移 SQL、连接池 | 业务规则 |
+| `tests/` | 测试 | `unit/`（可离线）、`integration/`（需数据库）、`fixtures/`、`helpers/` | — |
+| `e2e/` | 端到端测试 | Playwright 用例、seed、全局 setup | 单元测试 |
+| `scripts/` | 本地与 CI 脚本 | 开发栈启动、内嵌 Postgres、secret 检查、公开前审计 | 被应用 import 的代码 |
+| `docs/` | 文档 | 按读者分组，入口见 [`docs/README.md`](./docs/README.md) | 代码 |
+
 ```
 ├── app/
-│   ├── (auth)/                 # login / register（未登录可访问）
-│   ├── api/                    # Route Handlers
-│   │   ├── auth/{register,login,logout,me}/
-│   │   ├── resumes/ · job-jds/ · sessions/
-│   │   └── health/
-│   ├── layout.tsx · page.tsx · globals.css
+│   ├── (app)/                  # 需登录的页面：jd · resumes · sessions · membership · orders · settings
+│   ├── (auth)/                 # 未登录可访问：login · register
+│   ├── admin/                  # 管理后台：users · sessions · orders · logs · audit-logs
+│   ├── api/                    # Route Handlers（只做：解析入参 → 调 handler → 返回 envelope）
+│   │   ├── admin/ · auth/ · job-jds/ · resumes/ · sessions/ · payments/
+│   │   └── health/ · test/reset-session/（仅开发与 E2E）
+│   ├── legal/[doc]/            # 隐私政策 · 用户协议
+│   ├── layout.tsx · page.tsx · globals.css · error.tsx · not-found.tsx
 ├── components/
-│   ├── ui/                     # shadcn/ui 原子组件
-│   └── features/auth/          # 登录/注册/退出表单
+│   ├── ui/                     # 无业务语义的原子组件（button · card · dialog · empty-state …）
+│   ├── layout/                 # 应用骨架（app-nav · app-header）
+│   └── features/<领域>/         # admin · auth · interview · membership · parse · plan · report · sessions · settings
 ├── lib/
-│   ├── ai/                     # LLM 客户端、prompt 模板、JSON Schema
+│   ├── ai/                     # 复杂 AI 逻辑（唯一允许放 prompt / 评分公式的地方）
 │   │   ├── client.ts           # OpenAI 兼容接口（含视觉图片直读）
-│   │   ├── prompts/parse.ts    # JD / 简历 / 匹配三类 prompt
-│   │   └── schemas/parse.ts    # 对应 zod schema（strict）
+│   │   ├── prompts/            # parse · plan · interview · evaluation 四类 prompt
+│   │   ├── schemas/            # 对应 zod schema（strict）
+│   │   └── scoring.ts          # 分数换算公式的唯一实现
 │   ├── parsing/                # 文档抽取与后置校验
 │   │   ├── extract.ts          # PDF(pdf-parse) / DOCX(mammoth) / 图片
-│   │   ├── run.ts              # schema 校验 + 降温重试
+│   │   ├── run.ts              # schema 校验 + 降温重试 + 截断检测
 │   │   ├── verify.ts           # 防编造、敏感信息与禁止项过滤
 │   │   ├── llm-port.ts         # 可注入的 LLM 端口（测试用 fake）
 │   │   └── errors.ts           # 面向用户的中文错误文案
-│   ├── storage/s3.ts           # S3 兼容存储端口与实现
-│   ├── api/                    # errors · respond · guard · ownership
+│   ├── services/               # 业务用例层（详见该目录 README）
+│   │   ├── handlers/           # 17 个业务用例：orchestration · report · payment · session …
+│   │   └── state/              # 2 个纯函数状态机：orchestration · session（无 I/O）
+│   ├── storage/                # 存储端口与实现：s3.ts · local.ts · index.ts(工厂) · errors.ts
+│   ├── payments/               # products · provider · redemption-code
+│   ├── api/                    # 服务端路由支撑：errors · respond · guard · ownership · admin-guard
+│   ├── http/api-client.ts      # 浏览器端 fetch 封装（只在 'use client' 组件里用）
+│   ├── config/env.ts           # 环境变量读取与校验（唯一允许读 process.env 的地方）
+│   ├── utils/index.ts          # 无业务语义的小工具（cn 等）
 │   ├── auth/                   # password(scrypt) · session · verify-session
-│   ├── services/               # auth / resume / job-jd / session / parse / upload
-│   ├── validators/             # zod 入参契约
-│   ├── api-client.ts · env.ts · utils.ts
+│   ├── validators/             # 用户请求体的 zod 契约（与 ai/schemas 方向相反）
+│   ├── observability/          # logger · error-monitor · rate-limit
+│   ├── constants/ · legal/ · asr/
 ├── db/
 │   ├── schema/                 # 12 张表（enums 为单一真源）
-│   ├── migrations/             # 0000 初始 + 0001 extraction_meta
+│   ├── migrations/             # Drizzle 迁移（文件名由工具生成，见该目录 README）
 │   └── client.ts               # 惰性连接（导入不建连，缺 DATABASE_URL 也能 build）
 ├── tests/
 │   ├── unit/                   # 纯逻辑，无需数据库（含 fake LLM/S3）
 │   ├── integration/            # 需 DATABASE_URL，缺失时显式跳过
 │   ├── fixtures/documents.ts   # 真实 PDF / DOCX / PNG 字节构造器
 │   └── helpers/                # fakes.ts · db.ts
-├── e2e/ · docs/
-└── drizzle.config.ts · vitest.config.ts · playwright.config.ts · .env.example
+├── e2e/                        # Playwright：public · authz · interview · report · compliance · legal-links
+├── scripts/                    # dev-all · local-pg · e2e-seed · check-secrets · audit-public
+├── docs/                       # 文档索引见 docs/README.md（product / engineering / design / ops）
+└── 配置文件                       # next · tailwind · drizzle · vitest · playwright · eslint · prettier · tsconfig
 ```
+
+> 更细的层级说明：`lib/` 见 [`lib/README.md`](./lib/README.md)，`lib/services/` 见
+> [`lib/services/README.md`](./lib/services/README.md)，文档见 [`docs/README.md`](./docs/README.md)。
 
 ---
 
@@ -407,7 +436,7 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 | Schema 严格 | 所有对象 `additionalProperties: false` + 必填全列，多余或缺失字段一律判失败 |
 | 可测性 | LLM 与 S3 通过端口注入，测试用 fake 覆盖正常/失败/校验失败三类场景，不调用真实服务 |
 
-解析契约（prompt 与 JSON Schema）见 [docs/AI_PROMPTS.md](./docs/AI_PROMPTS.md)。
+解析契约（prompt 与 JSON Schema）见 [docs/engineering/AI_PROMPTS.md](./docs/engineering/AI_PROMPTS.md)。
 
 ---
 
@@ -458,7 +487,7 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## 面试编排状态机（Phase 4）
 
-面试过程由**服务端状态机**驱动，前端只负责展示与提交。契约见 [docs/ARCHITECTURE.md §3.6](./docs/ARCHITECTURE.md)。
+面试过程由**服务端状态机**驱动，前端只负责展示与提交。契约见 [docs/engineering/ARCHITECTURE.md §3.6](./docs/engineering/ARCHITECTURE.md)。
 
 ### 两个状态维度（不可混淆）
 
@@ -510,7 +539,7 @@ IDLE → PARSING → READY → ASKING → WAITING_ANSWER
 
 ## 面试房间 UI（Phase 4b）
 
-页面 `/sessions/[id]/interview`，完整规格见 [docs/UI.md §4](./docs/UI.md)。
+页面 `/sessions/[id]/interview`，完整规格见 [docs/design/UI.md §4](./docs/design/UI.md)。
 
 | 元素 | 实现 |
 |---|---|
@@ -537,7 +566,7 @@ IDLE → PARSING → READY → ASKING → WAITING_ANSWER
 
 ## 评分与报告（Phase 5）
 
-契约见 [docs/AI_PROMPTS.md §6/§7](./docs/AI_PROMPTS.md)，分数公式的唯一真源是 [docs/DATA_MODEL.md §5](./docs/DATA_MODEL.md)。
+契约见 [docs/engineering/AI_PROMPTS.md §6/§7](./docs/engineering/AI_PROMPTS.md)，分数公式的唯一真源是 [docs/engineering/DATA_MODEL.md §5](./docs/engineering/DATA_MODEL.md)。
 
 ### 数据分工
 
@@ -581,7 +610,7 @@ UI 据此渲染遮罩 —— 否则把付费内容一并发给前端，解锁形
 
 ### 报告页增强（Phase 6）
 
-规格见 [docs/UI.md §5](./docs/UI.md)。
+规格见 [docs/design/UI.md §5](./docs/design/UI.md)。
 
 | 分区 | 内容 |
 |---|---|
@@ -667,7 +696,7 @@ node -e "const{createHash}=require('crypto');const c='TEST-CODE-0001'.replace(/[
 
 ## 管理后台（Phase 8）
 
-规格见 [docs/UI.md §8](./docs/UI.md)。页面：`/admin`（概览）、`/admin/users`、`/admin/sessions`、`/admin/orders`、`/admin/logs`、`/admin/audit-logs`。
+规格见 [docs/design/UI.md §8](./docs/design/UI.md)。页面：`/admin`（概览）、`/admin/users`、`/admin/sessions`、`/admin/orders`、`/admin/logs`、`/admin/audit-logs`。
 
 ### 如何成为管理员
 
@@ -765,7 +794,7 @@ ADMIN_VIEW_RESUME_CONTENT="true"   # 必须严格为 "true"，不接受 1/TRUE
 
 ### 部署与 CI
 
-- 部署文档：**[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)** —— Vercel + Neon/Supabase + R2/S3 全流程、迁移执行、首次管理员提权、验收清单、回滚
+- 部署文档：**[docs/ops/DEPLOYMENT.md](./docs/ops/DEPLOYMENT.md)** —— Vercel + Neon/Supabase + R2/S3 全流程、迁移执行、首次管理员提权、验收清单、回滚
 - CI：`.github/workflows/ci.yml` —— 密钥检查 + lint + typecheck + test + build；
   另有一个**手动触发**的集成测试 job（需配置 `secrets.DATABASE_URL` 等）
 - 密钥检查：`scripts/check-secrets.mjs` —— 扫描硬编码密钥（含 `sk-`、`AKIA`、私钥块、含密码的 PG 连接串）、被 git 跟踪的 `.env`、`NEXT_PUBLIC_*` 敏感值
@@ -777,7 +806,7 @@ ADMIN_VIEW_RESUME_CONTENT="true"   # 必须严格为 "true"，不接受 1/TRUE
 业务表 9 张（`users`、`resumes`、`job_jds`、`interview_sessions`、`questions`、`answers`、`evaluations`、`reports`、`payments`）
 \+ 支撑表 3 张（`sessions` 登录会话、`audit_logs` 审计日志、`consents` 同意记录）。
 
-字段级定义与索引见 [docs/DATA_MODEL.md](./docs/DATA_MODEL.md)。关键约束直接落在数据库层：
+字段级定义与索引见 [docs/engineering/DATA_MODEL.md](./docs/engineering/DATA_MODEL.md)。关键约束直接落在数据库层：
 
 - `questions.depth BETWEEN 0 AND 2` —— 追问最多 2 层
 - `evaluations.evidence_quotes` 必须为非空数组 —— 评分必须引用证据
@@ -822,7 +851,7 @@ ADMIN_VIEW_RESUME_CONTENT="true"   # 必须严格为 "true"，不接受 1/TRUE
 9. **ASR 未接入（仅端口就绪）**：录音与上传链路完整，但 `lib/asr` 目前返回「未配置」实现，
    语音转文字返回 503 提示而非伪造文字。供应商选型确定后只需接线，前后端无需改动。
 10. **报告页已实现（本条为历史记录）**：`/sessions/[id]/report`（Phase 5）与 `/admin/*`（Phase 8）
-    均已落地，`docs/UI.md` 对应章节不再是待补规格。
+    均已落地，`docs/design/UI.md` 对应章节不再是待补规格。
 11. **`pdfjs-dist` 必须保持外置**：`pdf-parse` 的依赖 `pdfjs-dist` 一旦被 webpack
     打包进 server bundle，加载即抛 `TypeError: Object.defineProperty called on non-object`，
     导致 `/api/resumes/upload`、`/api/job-jds/upload` 等路由**整体 500**。
@@ -911,7 +940,7 @@ ADMIN_VIEW_RESUME_CONTENT="true"   # 必须严格为 "true"，不接受 1/TRUE
 
 ## 下一步
 
-**当前阶段：内测准备**。计划见 [docs/ITERATION_PLAN.md](./docs/ITERATION_PLAN.md)，指标口径见 [docs/METRICS.md](./docs/METRICS.md)。
+**当前阶段：内测准备**。计划见 [docs/product/ITERATION_PLAN.md](./docs/product/ITERATION_PLAN.md)，指标口径见 [docs/product/METRICS.md](./docs/product/METRICS.md)。
 
 内测前必须先完成三项（详见迭代计划 §2），它们都不是新功能，而是**让产品能被真实测量与验证**：
 
@@ -920,6 +949,6 @@ ADMIN_VIEW_RESUME_CONTENT="true"   # 必须严格为 "true"，不接受 1/TRUE
 3. **`git init` + 让 CI 真正执行**（CI 与密钥检查已写好但从未跑过）
 
 Phase 5：逐题评分与报告生成。
-开始前必须先把**逐题评分、报告生成两类 prompt 与 JSON Schema** 补进 `docs/AI_PROMPTS.md`
+开始前必须先把**逐题评分、报告生成两类 prompt 与 JSON Schema** 补进 `docs/engineering/AI_PROMPTS.md`
 （`evaluations.dimension_scores`、`reports.*` 目前仍是不稳定契约），
 并确认 ASR 供应商选型（语音作答依赖它）。

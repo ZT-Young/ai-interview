@@ -86,10 +86,10 @@ C 端求职者粘贴目标岗位 JD、上传个人简历，AI 扮演面试官进
 | 前端 | Next.js 14 App Router + TypeScript + Tailwind CSS + shadcn/ui | `app/`、`components/` |
 | 后端 | Next.js Route Handlers / Server Actions | 复杂 AI 逻辑**必须**放 `lib/ai` |
 | 数据库 | PostgreSQL + Drizzle ORM | `db/`（schema、migration） |
-| 鉴权 | Auth.js 或 Supabase Auth | 二选一，见 §9.2 待澄清 |
-| 文件存储 | S3 兼容存储 | 简历原件 |
+| 鉴权 | **自建**：邮箱 + 密码（scrypt）+ 数据库会话 + HttpOnly Cookie | `lib/auth/`；§9.2 的 Auth.js 选项已弃用 |
+| 文件存储 | S3 兼容对象存储（Cloudflare R2 / AWS S3 / MinIO） | 端口在 `lib/storage/`；未配 S3 时**仅开发环境**回退本地文件系统，生产环境直接 503 |
 | LLM | OpenAI 兼容接口，支持 DeepSeek / Qwen / GPT | `lib/ai`，模型名走环境变量 |
-| ASR | Whisper API 或国内 ASR | `lib/ai`，与 LLM 同层抽象 |
+| ASR | Whisper API 或国内 ASR（选型 TBD） | `lib/asr/`，与 LLM 同层抽象；未配置时返回 503，**不伪造转写文字** |
 | 部署 | Vercel + Neon/Supabase + R2/S3 | — |
 | 测试 | Vitest（单元/集成）+ Playwright（E2E） | `*.test.ts`、`e2e/` |
 | 包管理 | **pnpm** | 不使用 npm / yarn |
@@ -191,7 +191,7 @@ C 端求职者粘贴目标岗位 JD、上传个人简历，AI 扮演面试官进
 
 ### 9.2 待澄清事项（未定，禁止自行选型）
 
-- [ ] 鉴权用 **Auth.js** 还是 **Supabase Auth**
+- [x] 鉴权：**已定为自建**（邮箱+密码 scrypt + 数据库会话 + HttpOnly Cookie），见 §4
 - [ ] 支付渠道与解锁模型（单次解锁 / 会员 / 次数包）的具体组合
 - [ ] ASR 供应商（Whisper 或国内 ASR）与降级策略
 - [ ] 免费次数规则（新用户额度、是否每日重置）
@@ -229,7 +229,9 @@ pnpm db:migrate  # Drizzle 迁移
 
 - 修改 Markdown 时**不要用 shell 的字符串替换**（PowerShell 中反引号是转义字符，
   容易写出破坏性替换且无版本控制可回滚）。用编辑工具做精确替换，或整体重写。
-- 当前仓库**不初始化 git**，任何写入都无法回滚 —— 改动大文件前先确认内容来源。
+- 仓库已初始化 git（分支 `main`）。改动大文件前仍须确认内容来源；
+  提交粒度见 §8「小步提交」。**切勿用 `git add -A` 盲提交** —— 工作区可能存在
+  未忽略的临时文件与个人材料（历史踩坑记录见 `.gitignore` 末尾注释）。
 
 ---
 
