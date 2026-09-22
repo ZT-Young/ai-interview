@@ -1,7 +1,7 @@
 # UI 规格（V1）
 
 > 本文档是**页面、路由、组件与状态设计的单一真源**。
-> 上位依据：[AGENTS.md](../AGENTS.md) §2（核心流程）、§3（范围）、§7（合规）；字段与枚举见 [DATA_MODEL.md](./DATA_MODEL.md)；编排阶段见 [ARCHITECTURE.md §3.6](./ARCHITECTURE.md)。
+> 上位依据：[AGENTS.md](../../AGENTS.md) §2（核心流程）、§3（范围）、§7（合规）；字段与枚举见 [DATA_MODEL.md](../engineering/DATA_MODEL.md)；编排阶段见 [ARCHITECTURE.md §3.6](../engineering/ARCHITECTURE.md)。
 
 ---
 
@@ -298,7 +298,7 @@
 | 无参考答案时**不渲染该区块** | 历史数据与模型未产出该字段的情况需兼容，且不显示空壳 |
 
 > ⚠️ **合规边界**：参考答案**只能**使用简历与本次回答中出现的真实经历。
-> 模型侧约束见 [AI_PROMPTS.md §6.2](./AI_PROMPTS.md)；前端不得对参考答案做
+> 模型侧约束见 [AI_PROMPTS.md §6.2](../engineering/AI_PROMPTS.md)；前端不得对参考答案做
 > 「补齐数字」之类的自动润色，那会把占位提示变成编造。
 
 ### 5.6 免费 / 付费边界
@@ -448,9 +448,9 @@
 |---|---|
 | `app/**/page.tsx` | 路由与布局约定（§1） |
 | `components/**` | 组件职责划分（§2） |
-| `docs/ARCHITECTURE.md` | 编排阶段与 API（§3.6、§3.1） |
-| `docs/AI_PROMPTS.md` | 提示与追问文案来源（§5） |
-| `docs/PRD.md`（待创建） | 免费/付费边界对应的 UI 差异（报告页，Phase 5） |
+| `docs/engineering/ARCHITECTURE.md` | 编排阶段与 API（§3.6、§3.1） |
+| `docs/engineering/AI_PROMPTS.md` | 提示与追问文案来源（§5） |
+| `docs/product/PRD.md`（待创建） | 免费/付费边界对应的 UI 差异（报告页，Phase 5） |
 
 > **未覆盖**：`/reports/[id]` 直达路由的规格。管理后台见 §8。
 > 它们在对应功能开始前必须补进本文档。支付渠道与免费次数规则仍未定（AGENTS.md §9.2），

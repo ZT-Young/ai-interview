@@ -2,7 +2,7 @@
 
 > 本文档是**所有 AI 结构化输出的契约单一真源**。
 > 实现位置：`lib/ai/prompts/*`（prompt 文本）与 `lib/ai/schemas/*`（zod schema）。
-> 上位依据：[AGENTS.md](../AGENTS.md) §6（AI 面试规则）、§7（合规）；字段落点见 [DATA_MODEL.md](./DATA_MODEL.md)、[ARCHITECTURE.md](./ARCHITECTURE.md)。
+> 上位依据：[AGENTS.md](../../AGENTS.md) §6（AI 面试规则）、§7（合规）；字段落点见 [DATA_MODEL.md](./DATA_MODEL.md)、[ARCHITECTURE.md](./ARCHITECTURE.md)。
 
 ---
 
@@ -993,7 +993,7 @@ parse_status = failed，保留 raw_text 与 extraction_meta
 | `lib/services/evaluation-service.ts` | §6.4 的证据引用校验 |
 | `lib/services/report-service.ts` | §7.1 的分数公式（服务端计算） |
 | `db/schema/*` | `parsed_data`、`questions.*`、`interview_messages.*`、`evaluations.*`、`reports.*` |
-| `docs/UI.md` | 报告页展示（免费/付费字段裁剪） |
+| `docs/design/UI.md` | 报告页展示（免费/付费字段裁剪） |
 
 > **已全部落地**：JD 解析（§1）、简历解析（§2）、匹配分析（§3）、出题（§4）、
 > 追问与提示（§5）、逐题评分（§6）、报告生成（§7）。

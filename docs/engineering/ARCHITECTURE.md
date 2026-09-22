@@ -1,6 +1,6 @@
 # 技术架构（V1）
 
-> 上位依据：[AGENTS.md](../AGENTS.md) §4（技术栈）、§6（AI 规则）、§7（合规）、§9（工作流）。
+> 上位依据：[AGENTS.md](../../AGENTS.md) §4（技术栈）、§6（AI 规则）、§7（合规）、§9（工作流）。
 > 字段与枚举以 [DATA_MODEL.md](./DATA_MODEL.md) 为单一真源，本文不重复定义。
 
 ---
@@ -42,86 +42,89 @@
 
 ## 2. 目录结构
 
+八个顶层目录，一个目录一个职责。详细的「放什么/不放什么」表见
+[`../../README.md`](../../README.md) 的「目录结构」一节；这里只给层级树。
+
 ```
 ai-interview/
-├── app/
-│   ├── (auth)/                      # 未登录可访问
+├── app/                              # ① 路由与页面层
+│   ├── (auth)/                       # 未登录可访问
 │   │   ├── login/page.tsx
 │   │   └── register/page.tsx
-│   ├── (app)/                       # 需登录（layout 内做重定向守卫）
-│   │   ├── layout.tsx
-│   │   ├── page.tsx                 # 工作台：简历/JD 入口
-│   │   ├── resumes/                 # 简历管理
-│   │   ├── jd/                      # JD 管理
-│   │   ├── sessions/
-│   │   │   ├── new/page.tsx         # 解析结果确认 + 生成计划
-│   │   │   └── [id]/page.tsx        # 面试进行中
-│   │   └── reports/[id]/page.tsx    # 报告（含付费解锁）
-│   ├── admin/                       # 管理后台最小版（P2）
-│   ├── api/
-│   │   ├── health/route.ts          # 健康检查（DB 连通性）
-│   │   ├── auth/
-│   │   │   ├── register/route.ts
-│   │   │   ├── login/route.ts
-│   │   │   ├── logout/route.ts
-│   │   │   └── me/route.ts
-│   │   ├── resumes/route.ts         # GET 列表 / POST 创建
-│   │   ├── resumes/[id]/route.ts    # GET / PATCH / DELETE
-│   │   ├── job-jds/route.ts
-│   │   ├── job-jds/[id]/route.ts
-│   │   ├── sessions/route.ts
-│   │   └── sessions/[id]/route.ts
-│   ├── layout.tsx
-│   ├── page.tsx
-│   └── globals.css
-├── components/
-│   ├── ui/                          # shadcn/ui 原子组件
-│   └── features/                    # 业务组件（按域分子目录）
-├── lib/
-│   ├── ai/                          # ④ LLM + ASR + prompt + 编排
-│   │   ├── client.ts                # OpenAI 兼容 /chat/completions
-│   │   ├── errors.ts                # AiError 分类
-│   │   ├── prompts/                 # 各环节 prompt 与 JSON Schema
-│   │   ├── scoring.ts               # 评分公式（DATA_MODEL §5）
+│   ├── (app)/                        # 需登录（layout 内 requirePageUser 重定向守卫）
+│   │   ├── resumes/                  # 列表 / new（上传或粘贴）/ [id]/review（解析确认）
+│   │   ├── jd/                       # 同上
+│   │   ├── sessions/                 # 列表 / new（选简历+JD 生成计划）/ [id]（计划确认）
+│   │   │   └── [id]/{interview,report}/page.tsx
+│   │   ├── membership/ · orders/     # 会员与订单
+│   │   └── settings/                 # 数据导出与账号删除（C3）
+│   ├── admin/                        # 管理后台最小版：users · sessions · orders · logs · audit-logs
+│   ├── api/                          # ② 接口层：只做「解析入参 → 调 handler → 返回 envelope」
+│   │   ├── health/route.ts           # 健康检查（含 DB 连通性）
+│   │   ├── auth/{register,login,logout,me}/route.ts
+│   │   │   └── me/data-export/route.ts
+│   │   ├── resumes/                  # route.ts · [id]/{route,parse} · upload · from-text
+│   │   ├── job-jds/                  # route.ts · [id]/{route,parse} · parse · upload
+│   │   ├── sessions/                 # route.ts · [id]/{route,start,match,plan,next,
+│   │   │                             #   answers,answers/audio,evaluate,finish,report}
+│   │   │   └── [id]/_shared.ts       # 该资源下多个 route 共用的取参与守卫
+│   │   ├── payments/{orders,callback,redeem}/route.ts
+│   │   ├── admin/                    # overview · users · sessions · orders · logs · audit-logs
+│   │   └── test/reset-session/       # 仅开发与 E2E；生产环境返回 404
+│   ├── legal/[doc]/page.tsx          # 隐私政策 · 用户协议（C2）
+│   ├── layout.tsx · page.tsx · globals.css
+│   └── error.tsx · not-found.tsx
+├── components/                       # ① 组件层
+│   ├── ui/                           # shadcn/ui 原子组件（无业务语义）
+│   ├── layout/                       # app-nav · app-header（导航骨架）
+│   └── features/<领域>/               # admin · auth · interview · membership · parse · plan
+│                                     # · report · sessions · settings
+├── lib/                              # ③④⑤ 全部业务逻辑
+│   ├── ai/                           # LLM 客户端、prompt、JSON Schema、评分公式
+│   │   ├── client.ts                 # OpenAI 兼容 /chat/completions（含视觉图片直读）
+│   │   ├── errors.ts                 # AiError 分类（含额度不足/超时/限流）
+│   │   ├── logger.ts                 # AI 调用日志（落 ai_call_logs）
+│   │   ├── prompts/                  # parse · plan · interview · evaluation
+│   │   ├── schemas/                  # 与 prompts 一一对应的 zod schema（strict）
+│   │   ├── scoring.ts                # 分数换算公式（真源是 DATA_MODEL §5）
 │   │   └── types.ts
-│   ├── auth/                        # ④ 密码哈希、会话签发与校验
-│   │   ├── password.ts
-│   │   ├── session.ts
-│   │   └── guard.ts                 # requireUser()
-│   ├── services/                    # ③ 领域服务
-│   │   ├── auth-service.ts
-│   │   ├── resume-service.ts
-│   │   ├── job-jd-service.ts
-│   │   └── session-service.ts
-│   ├── payments/                    # ④ 支付渠道抽象（TBD）
-│   ├── storage/                     # ④ S3 兼容存储
-│   ├── api/                         # ② 共用：错误映射、响应封装
-│   │   ├── errors.ts                # ApiError → HTTP 状态码
-│   │   └── respond.ts
-│   ├── validators/                  # zod 入参 schema（与 DB 无关的输入契约）
-│   ├── env.ts
-│   └── utils.ts
-├── db/
-│   ├── schema/
-│   │   ├── enums.ts                 # 枚举单一真源
-│   │   ├── users.ts · sessions.ts · consents.ts · audit-logs.ts
-│   │   ├── resumes.ts · job-jds.ts
-│   │   ├── sessions-interview.ts    # interview_sessions + questions + answers + evaluations
-│   │   ├── reports.ts · payments.ts
-│   │   └── index.ts
-│   ├── migrations/                  # drizzle-kit generate 产物
-│   └── client.ts
+│   ├── parsing/                      # 文档抽取与后置校验
+│   │   ├── extract.ts                # PDF(pdf-parse) / DOCX(mammoth) / 图片走视觉模型
+│   │   ├── run.ts                    # schema 校验 + 降温重试 + 截断(finishReason)检测
+│   │   ├── verify.ts                 # 禁止项与敏感信息过滤
+│   │   ├── llm-port.ts               # 可注入的 LlmPort（测试用 fake）
+│   │   └── errors.ts                 # 面向用户的中文文案与错误码
+│   ├── services/                     # 业务用例层（详见 lib/services/README.md）
+│   │   ├── handlers/                 # 17 个业务用例，动词函数，有副作用
+│   │   └── state/                    # 2 个纯函数状态机，无 I/O，可离线单测
+│   ├── auth/                         # password(scrypt) · session · verify-session
+│   ├── storage/                      # StoragePort + s3.ts / local.ts + index.ts(工厂)
+│   ├── payments/                     # products · provider · redemption-code
+│   ├── api/                          # 服务端共用：errors · respond · guard · ownership · admin-guard
+│   ├── http/api-client.ts            # 浏览器端 fetch 封装（仅 'use client' 使用）
+│   ├── config/env.ts                 # 环境变量读取与校验
+│   ├── utils/index.ts                # 无业务语义的小工具（cn 等）
+│   ├── validators/                   # 用户请求体的 zod 契约
+│   ├── observability/                # logger · error-monitor · rate-limit
+│   ├── constants/ · legal/ · asr/
+├── db/                               # ⑤ 数据层
+│   ├── schema/                       # enums(单一真源) · users · sessions · consents · audit-logs
+│   │                                 # · resumes · job-jds · interview-sessions · evaluations
+│   │                                 # · reports · payments · redemption-codes · ai-call-logs
+│   ├── migrations/                   # drizzle-kit generate 产物（勿手改，见该目录 README）
+│   └── client.ts                     # 惰性连接 + globalThis 单例池（防 dev 多 bundle 连接泄漏）
 ├── tests/
 │   ├── setup.ts
-│   ├── unit/                        # 纯函数，无需 DB
-│   ├── integration/                 # 需 DATABASE_URL，缺失时跳过
-│   └── helpers/                     # 测试夹具（建用户、造会话）
-├── e2e/                             # Playwright
-├── docs/
-├── drizzle.config.ts
-├── vitest.config.ts
-├── playwright.config.ts
-└── .env.example
+│   ├── unit/                         # 纯函数，无需 DB（含 fake LLM/S3）
+│   ├── integration/                  # 需 DATABASE_URL，缺失时显式跳过
+│   ├── fixtures/documents.ts         # 程序化构造真实 PDF / DOCX / PNG 字节
+│   └── helpers/                      # fakes.ts · db.ts
+├── e2e/                              # Playwright：public · authz · interview · report · compliance
+│                                     # · legal-links · session-create + seed/global-setup
+├── scripts/                          # dev-all · local-pg · e2e-seed · check-secrets · audit-public
+├── docs/                             # 索引见 docs/README.md（product/engineering/design/ops）
+└── 配置文件                            # next · tailwind · postcss · drizzle · vitest · playwright
+                                      # · eslint · prettier · tsconfig · components.json
 ```
 
 ---
@@ -300,7 +303,7 @@ IDLE ──► PARSING ──► READY ──► ASKING ──► WAITING_ANSWER
 
 ## 5. 环境变量清单
 
-校验实现：`lib/env.ts`（分组校验，缺失时报出可读错误）。真实值只进 `.env.local` / 部署平台。
+校验实现：`lib/config/env.ts`（分组校验，缺失时报出可读错误）。真实值只进 `.env.local` / 部署平台。
 
 | 变量 | 分组 | 必填时机 | 说明 |
 |---|---|---|---|
@@ -382,5 +385,5 @@ IDLE ──► PARSING ──► READY ──► ASKING ──► WAITING_ANSWER
 | §6 N1–N7 AI 规则 | `lib/ai/prompts` + `lib/ai/scoring.ts` + DB 层 CHECK 兜底 |
 | §7 C1–C6 合规 | `consents`/`audit_logs` 表 + §4 权限模型 + §3.4 审计 |
 | §7 C5 不得自动拒绝候选人 | **无任何自动淘汰/拒绝流程**；报告仅供用户自查 |
-| §8 不硬编码密钥 | `lib/env.ts` + `.env.example` |
+| §8 不硬编码密钥 | `lib/config/env.ts` + `.env.example` |
 | §9.3 验证命令 | README「常用命令」+ §8 测试策略 |

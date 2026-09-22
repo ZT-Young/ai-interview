@@ -1,7 +1,7 @@
 # 数据模型（V1）
 
 > 本文档是**枚举与字段的单一真源**。其他文档（PRD / ARCHITECTURE / AI_PROMPTS / UI）引用本文，不重复定义。
-> 上位依据：[AGENTS.md](../AGENTS.md) §5（数据模型）、§6（AI 评分规则）、§7（合规）。
+> 上位依据：[AGENTS.md](../../AGENTS.md) §5（数据模型）、§6（AI 评分规则）、§7（合规）。
 > 实现位置：`db/schema/`，迁移产物 `db/migrations/`。
 
 ---

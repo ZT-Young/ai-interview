@@ -1,8 +1,8 @@
 # 产品需求文档（PRD · V1）
 
 > 本文档是**产品范围的单一真源**：定义为谁做、做什么、不做什么、做到什么程度算成功。
-> 上位依据：[AGENTS.md](../AGENTS.md) §1–§3、§6、§7。技术实现见 [ARCHITECTURE.md](./ARCHITECTURE.md)，
-> 页面与状态见 [UI.md](./UI.md)，指标口径见 [METRICS.md](./METRICS.md)。
+> 上位依据：[AGENTS.md](../../AGENTS.md) §1–§3、§6、§7。技术实现见 [ARCHITECTURE.md](../engineering/ARCHITECTURE.md)，
+> 页面与状态见 [UI.md](../design/UI.md)，指标口径见 [METRICS.md](./METRICS.md)。
 
 ---
 
@@ -57,7 +57,7 @@
 
 ## 3. 核心流程（10 步）
 
-> 完整状态机与数据流见 [ARCHITECTURE.md §3.6](./ARCHITECTURE.md)。
+> 完整状态机与数据流见 [ARCHITECTURE.md §3.6](../engineering/ARCHITECTURE.md)。
 
 ### 面试前
 
@@ -90,7 +90,7 @@
 
 ## 4. 页面清单
 
-完整路由表、组件清单与四类状态设计见 [UI.md](./UI.md)。按用户旅程归纳：
+完整路由表、组件清单与四类状态设计见 [UI.md](../design/UI.md)。按用户旅程归纳：
 
 | 阶段 | 页面 |
 |---|---|
@@ -210,12 +210,12 @@
 
 | 文档 | 关系 |
 |---|---|
-| [AGENTS.md](../AGENTS.md) | 上位约束（范围/规则/合规/开发规范） |
-| [DATA_MODEL.md](./DATA_MODEL.md) | 上文流程涉及的数据结构与枚举 |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | 技术实现与编排状态机 |
-| [AI_PROMPTS.md](./AI_PROMPTS.md) | AI 各环节的 prompt 与输出契约 |
-| [UI.md](./UI.md) | 页面、组件与状态设计 |
+| [AGENTS.md](../../AGENTS.md) | 上位约束（范围/规则/合规/开发规范） |
+| [DATA_MODEL.md](../engineering/DATA_MODEL.md) | 上文流程涉及的数据结构与枚举 |
+| [ARCHITECTURE.md](../engineering/ARCHITECTURE.md) | 技术实现与编排状态机 |
+| [AI_PROMPTS.md](../engineering/AI_PROMPTS.md) | AI 各环节的 prompt 与输出契约 |
+| [UI.md](../design/UI.md) | 页面、组件与状态设计 |
 | [METRICS.md](./METRICS.md) | §6 指标的具体口径与 SQL |
 | [BETA_FEEDBACK.md](./BETA_FEEDBACK.md) | 内测问卷（验证 §7 假设） |
 | [ITERATION_PLAN.md](./ITERATION_PLAN.md) | 基于内测结果的下一版优先级 |
-| [DEPLOYMENT.md](./DEPLOYMENT.md) | 部署与运维 |
+| [DEPLOYMENT.md](../ops/DEPLOYMENT.md) | 部署与运维 |
