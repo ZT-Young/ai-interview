@@ -1,6 +1,6 @@
 import { apiHandler, ok } from '@/lib/api/respond'
 import { requestContext, requireUser } from '@/lib/api/guard'
-import { deleteUserAccount } from '@/lib/services/data-rights-service'
+import { deleteUserAccount } from '@/lib/services/handlers/data-rights-service'
 import { SESSION_COOKIE_NAME } from '@/lib/auth/session'
 
 /** GET /api/auth/me —— 当前登录用户；未登录返回 401。 */

@@ -18,7 +18,7 @@ export type ParseErrorCode =
 
 /**
  * 解析错误 —— parseError 只承载**面向用户的中文提示**，
- * 供应商原始报错放在 cause 中，不得直接展示（docs/AI_PROMPTS.md §4.3）。
+ * 供应商原始报错放在 cause 中，不得直接展示（docs/engineering/AI_PROMPTS.md §4.3）。
  */
 export class ParseError extends Error {
   readonly code: ParseErrorCode

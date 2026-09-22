@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { apiHandler, created, parseJsonBody } from '@/lib/api/respond'
 import { requestContext } from '@/lib/api/guard'
 import { assertRateLimit, clientKeyFromRequest } from '@/lib/observability/rate-limit'
-import { register } from '@/lib/services/auth-service'
+import { register } from '@/lib/services/handlers/auth-service'
 import { SESSION_COOKIE_NAME, sessionCookieOptions } from '@/lib/auth/session'
 import { registerSchema } from '@/lib/validators/auth'
 

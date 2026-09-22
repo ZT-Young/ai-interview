@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { requirePageUser } from '@/lib/api/guard'
-import { listJobJds } from '@/lib/services/job-jd-service'
+import { listJobJds } from '@/lib/services/handlers/job-jd-service'
 
 export const metadata = { title: '岗位 JD' }
 export const dynamic = 'force-dynamic'

@@ -7,7 +7,7 @@ import { notFound } from '@/lib/api/errors'
 /**
  * 会员与订单服务 —— ③ 领域服务层。
  *
- * **当前范围**：只做展示（docs/UI.md §6）。
+ * **当前范围**：只做展示（docs/design/UI.md §6）。
  * 支付渠道与免费次数规则仍为 TBD（AGENTS.md §9.2），因此
  * 本模块**不含**下单、渠道跳转与回调；`payments` 表已是最终结构，接入时无需迁移。
  */
@@ -20,7 +20,7 @@ export const MEMBERSHIP_LABELS: Record<MembershipLevel, string> = {
   pro: '高级会员',
 }
 
-/** 权益对照表：**必须与 docs/UI.md §5.6 的免费/付费边界一致** */
+/** 权益对照表：**必须与 docs/design/UI.md §5.6 的免费/付费边界一致** */
 export const BENEFIT_MATRIX: Array<{ feature: string; free: boolean; member: boolean }> = [
   { feature: '面试总分与岗位匹配度', free: true, member: true },
   { feature: '六维得分与雷达图', free: true, member: true },

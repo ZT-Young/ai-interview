@@ -3,8 +3,8 @@
 import { CreateSessionForm } from '@/components/features/plan/create-session-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { requirePageUser } from '@/lib/api/guard'
-import { listResumes } from '@/lib/services/resume-service'
-import { listJobJds } from '@/lib/services/job-jd-service'
+import { listResumes } from '@/lib/services/handlers/resume-service'
+import { listJobJds } from '@/lib/services/handlers/job-jd-service'
 
 export const metadata = { title: '新建面试' }
 export const dynamic = 'force-dynamic'

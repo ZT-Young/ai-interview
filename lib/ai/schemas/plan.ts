@@ -10,7 +10,7 @@ import { containsProhibited, containsSensitive } from '@/lib/parsing/verify'
 import { SCHEMA_VERSION, envelope } from './parse'
 
 /**
- * 面试计划（出题）schema —— docs/AI_PROMPTS.md §4.2 的代码实现。
+ * 面试计划（出题）schema —— docs/engineering/AI_PROMPTS.md §4.2 的代码实现。
  */
 
 /** 每题必备的六个字段（需求要求：文本/类型/来源/维度/期望要点/可追问） */
@@ -49,7 +49,7 @@ export type PlanQuestion = z.infer<typeof planQuestionSchema>
 export type PlanData = z.infer<typeof planDataSchema>
 
 /* ------------------------------------------------------------------ *
- * 配额与后置校验（docs/AI_PROMPTS.md §4.3）
+ * 配额与后置校验（docs/engineering/AI_PROMPTS.md §4.3）
  * ------------------------------------------------------------------ */
 
 /** 总数下限 / 上限 */

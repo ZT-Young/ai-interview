@@ -6,8 +6,8 @@ import {
   getSession,
   transitionSession,
   updateSession,
-} from '@/lib/services/session-service'
-import { SESSION_STATUSES, type SessionStatus } from '@/lib/services/session-state'
+} from '@/lib/services/handlers/session-service'
+import { SESSION_STATUSES, type SessionStatus } from '@/lib/services/state/session'
 import { updateSessionSchema } from '@/lib/validators/session'
 
 interface RouteContext {

@@ -1,6 +1,6 @@
 import { apiHandler } from '@/lib/api/respond'
 import { requireUser } from '@/lib/api/guard'
-import { auditDataExport, exportUserData } from '@/lib/services/data-rights-service'
+import { auditDataExport, exportUserData } from '@/lib/services/handlers/data-rights-service'
 
 /**
  * GET /api/auth/me/data-export —— 导出当前用户的全部数据（JSON 下载）。

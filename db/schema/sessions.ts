@@ -14,7 +14,7 @@ import { users } from './users'
 
 /**
  * sessions —— 登录会话（注意：业务面试会话是 interview_sessions，两者不可混用）
- * 见 docs/DATA_MODEL.md §3.11。
+ * 见 docs/engineering/DATA_MODEL.md §3.11。
  *
  * Cookie 中保存明文 token，本表只保存其 HMAC 哈希，库被读取也无法直接冒用会话。
  */

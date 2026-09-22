@@ -20,7 +20,7 @@ import type { LlmPort } from '@/lib/parsing/llm-port'
 import { parseWithRetry, MAX_ATTEMPTS } from '@/lib/parsing/run'
 
 /**
- * 逐题评分服务 —— docs/AI_PROMPTS.md §6。
+ * 逐题评分服务 —— docs/engineering/AI_PROMPTS.md §6。
  *
  * 关键约束：
  * - **每条评分必须引用回答原文证据**，且证据必须是回答的子串（校验层强制）

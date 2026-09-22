@@ -1,7 +1,7 @@
 import { pgEnum } from 'drizzle-orm/pg-core'
 
 /**
- * 枚举单一真源 —— 见 docs/DATA_MODEL.md §2 与 docs/ARCHITECTURE.md §3.6。
+ * 枚举单一真源 —— 见 docs/engineering/DATA_MODEL.md §2 与 docs/engineering/ARCHITECTURE.md §3.6。
  * 新增取值必须走迁移；禁止在业务代码里散落字符串字面量。
  */
 
@@ -77,7 +77,7 @@ export const consentTypeEnum = pgEnum('consent_type', ['terms', 'privacy', 'ai_d
 
 /**
  * 面试**编排阶段**（微观）。
- * 与 sessionStatusEnum 的关系见 docs/ARCHITECTURE.md §3.6.1。
+ * 与 sessionStatusEnum 的关系见 docs/engineering/ARCHITECTURE.md §3.6.1。
  */
 export const orchestrationPhaseEnum = pgEnum('orchestration_phase', [
   'IDLE',

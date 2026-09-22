@@ -3,7 +3,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { requirePageUser } from '@/lib/api/guard'
-import { listOrders } from '@/lib/services/membership-service'
+import { listOrders } from '@/lib/services/handlers/membership-service'
 
 export const metadata = { title: '订单记录' }
 export const dynamic = 'force-dynamic'
@@ -31,7 +31,7 @@ function formatAmount(cents: number, currency: string): string {
 }
 
 /**
- * 订单记录页（docs/UI.md §6.1）。
+ * 订单记录页（docs/design/UI.md §6.1）。
  *
  * 支付渠道未接入，因此正常情况下为空列表 —— 空状态需明确说明原因，
  * 而不是让用户以为是加载失败。渠道订单号已脱敏展示。

@@ -4,7 +4,7 @@
  * 集成测试需要 DATABASE_URL 与 AUTH_SECRET：
  * - 两者齐备时正常执行；
  * - 缺失时由测试文件用 `describe.skipIf(!hasTestDatabase())` **显式跳过**，
- *   绝不用假的断言伪装通过（见 docs/ARCHITECTURE.md §8）。
+ *   绝不用假的断言伪装通过（见 docs/engineering/ARCHITECTURE.md §8）。
  */
 import { randomUUID } from 'node:crypto'
 
@@ -12,7 +12,7 @@ import { inArray } from 'drizzle-orm'
 
 import { closeDb, getDb, hasDatabaseUrl } from '@/db/client'
 import { users } from '@/db/schema'
-import { register } from '@/lib/services/auth-service'
+import { register } from '@/lib/services/handlers/auth-service'
 
 export { closeDb }
 

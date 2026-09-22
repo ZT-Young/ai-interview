@@ -17,7 +17,7 @@ import { users } from './users'
 
 /**
  * reports —— 总报告
- * 见 docs/DATA_MODEL.md §3.8。
+ * 见 docs/engineering/DATA_MODEL.md §3.8。
  *
  * 四要素（highlights / issues / reference_answers / next_steps）为 NOT NULL
  * —— 强制满足 AGENTS.md §6.1 N7「报告必须区分亮点、问题、参考回答、下一步建议」。
@@ -47,7 +47,7 @@ export const reports = pgTable(
     referenceAnswers: jsonb('reference_answers').notNull().default([]),
     /** 付费解锁 */
     nextSteps: jsonb('next_steps').notNull().default([]),
-    /** 简历疑点（来自简历解析的 risks，仅归纳不得新增）—— docs/AI_PROMPTS.md §7 */
+    /** 简历疑点（来自简历解析的 risks，仅归纳不得新增）—— docs/engineering/AI_PROMPTS.md §7 */
     resumeRisks: jsonb('resume_risks').notNull().default([]),
     summary: text('summary'),
 

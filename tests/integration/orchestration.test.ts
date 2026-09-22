@@ -6,10 +6,10 @@ import { answers, interviewMessages, interviewSessions, jobJds, questions, resum
 import { ApiError } from '@/lib/api/errors'
 import { MAX_QUESTION_DEPTH } from '@/db/schema/enums'
 import type { PlanQuestion } from '@/lib/ai/schemas/plan'
-import { createJobJd, updateParseState as updateJdParseState } from '@/lib/services/job-jd-service'
-import { createResume, updateParseState as updateResumeParseState } from '@/lib/services/resume-service'
-import { createSession } from '@/lib/services/session-service'
-import { generatePlan } from '@/lib/services/plan-service'
+import { createJobJd, updateParseState as updateJdParseState } from '@/lib/services/handlers/job-jd-service'
+import { createResume, updateParseState as updateResumeParseState } from '@/lib/services/handlers/resume-service'
+import { createSession } from '@/lib/services/handlers/session-service'
+import { generatePlan } from '@/lib/services/handlers/plan-service'
 import {
   finishInterview,
   getNextQuestion,
@@ -17,7 +17,7 @@ import {
   MIN_ANSWER_LENGTH,
   startInterview,
   submitAnswer,
-} from '@/lib/services/orchestration-service'
+} from '@/lib/services/handlers/orchestration-service'
 
 import { FakeLlm, llmUnavailableError } from '../helpers/fakes'
 import {

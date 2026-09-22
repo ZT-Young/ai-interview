@@ -4,9 +4,9 @@ import { serviceUnavailable } from '@/lib/api/errors'
 import { requireUser } from '@/lib/api/guard'
 import { apiHandler, ok, parseJsonBody } from '@/lib/api/respond'
 import { buildStorageKey, createStorage, isStorageUnavailable } from '@/lib/storage'
-import { parseResumeText } from '@/lib/services/parse-service'
-import { createResume, updateParseState } from '@/lib/services/resume-service'
-import { resolvePorts } from '@/lib/services/upload-service'
+import { parseResumeText } from '@/lib/services/handlers/parse-service'
+import { createResume, updateParseState } from '@/lib/services/handlers/resume-service'
+import { resolvePorts } from '@/lib/services/handlers/upload-service'
 
 /**
  * POST /api/resumes/from-text —— **粘贴简历文本**创建并解析（无需上传文件）。

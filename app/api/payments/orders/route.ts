@@ -4,9 +4,9 @@ import { requireUser } from '@/lib/api/guard'
 import { serviceUnavailable } from '@/lib/api/errors'
 import { apiHandler, ok, parseJsonBody } from '@/lib/api/respond'
 import { isPaymentConfigured } from '@/lib/payments/provider'
-import { createOrder } from '@/lib/services/payment-service'
-import { listOrders } from '@/lib/services/membership-service'
-import { getEntitlements } from '@/lib/services/entitlement-service'
+import { createOrder } from '@/lib/services/handlers/payment-service'
+import { listOrders } from '@/lib/services/handlers/membership-service'
+import { getEntitlements } from '@/lib/services/handlers/entitlement-service'
 
 /**
  * GET /api/payments/orders —— 当前用户的订单记录 + 权益摘要。

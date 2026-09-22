@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseJdFile, parseJdText, parseResumeFile } from '@/lib/services/parse-service'
+import { parseJdFile, parseJdText, parseResumeFile } from '@/lib/services/handlers/parse-service'
 import type { JdData, ResumeData } from '@/lib/ai/schemas/parse'
 
 import { buildDocx, buildPdf, buildPng } from '../fixtures/documents'

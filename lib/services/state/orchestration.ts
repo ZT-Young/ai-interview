@@ -3,7 +3,7 @@ import { validationError } from '@/lib/api/errors'
 /**
  * 面试编排状态机 —— 纯逻辑，无数据库与 Next.js 依赖，可直接单测。
  *
- * 契约见 docs/ARCHITECTURE.md §3.6。
+ * 契约见 docs/engineering/ARCHITECTURE.md §3.6。
  *
  * 两个维度的关系（不可混淆）：
  * - `SessionStatus`（生命周期，宏观）：draft / planned / in_progress / completed / cancelled / failed

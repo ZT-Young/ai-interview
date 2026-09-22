@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/index'
 
 /**
  * AI 面试官头像。

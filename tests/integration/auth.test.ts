@@ -5,7 +5,7 @@ import { getDb } from '@/db/client'
 import { auditLogs, consents, sessions, users } from '@/db/schema'
 import { ApiError } from '@/lib/api/errors'
 import { resolveSessionUser } from '@/lib/auth/verify-session'
-import { deleteAccount, getUserById, login, logout, register, updateProfile } from '@/lib/services/auth-service'
+import { deleteAccount, getUserById, login, logout, register, updateProfile } from '@/lib/services/handlers/auth-service'
 
 import {
   createTestUser,

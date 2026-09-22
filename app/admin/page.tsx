@@ -3,12 +3,12 @@ import { notFound } from 'next/navigation'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAdminOrNull } from '@/lib/api/admin-guard'
-import { getOverview } from '@/lib/services/admin-service'
+import { getOverview } from '@/lib/services/handlers/admin-service'
 
 export const metadata = { title: '后台概览' }
 export const dynamic = 'force-dynamic'
 
-/** 后台概览（docs/UI.md §8.1） */
+/** 后台概览（docs/design/UI.md §8.1） */
 export default async function AdminOverviewPage() {
   // 必须在本页最早处守卫：layout 与 page 并行渲染，layout 的 notFound() 拦不住本页取数
   const admin = await getAdminOrNull()

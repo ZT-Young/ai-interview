@@ -18,7 +18,7 @@ import { users } from './users'
 
 /**
  * resumes —— 简历（文件 + 解析文本 + 结构化信息）
- * 见 docs/DATA_MODEL.md §3.2。
+ * 见 docs/engineering/DATA_MODEL.md §3.2。
  */
 export const resumes = pgTable(
   'resumes',
@@ -37,14 +37,14 @@ export const resumes = pgTable(
 
     /** 抽取的原始文本 */
     rawText: text('raw_text'),
-    /** 结构化信息；JSON Schema 见 docs/AI_PROMPTS.md（待创建），当前视为不稳定契约 */
+    /** 结构化信息；JSON Schema 见 docs/engineering/AI_PROMPTS.md（待创建），当前视为不稳定契约 */
     parsedData: jsonb('parsed_data'),
     parseStatus: parseStatusEnum('parse_status').notNull().default('pending'),
     parseError: text('parse_error'),
     /**
      * 抽取元信息：source / text_length / page_count / vision_used /
      * low_confidence_fields / prompt_version / attempts / truncated
-     * 见 docs/AI_PROMPTS.md §4.2。
+     * 见 docs/engineering/AI_PROMPTS.md §4.2。
      */
     extractionMeta: jsonb('extraction_meta'),
 

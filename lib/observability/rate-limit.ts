@@ -8,7 +8,7 @@ import { ApiError } from '@/lib/api/errors'
  * 但在 Vercel 等**多实例/无状态**部署下每个实例各算一份，
  * 因此只能削弱暴力破解与滥用，**不是精确的全局配额**。
  * 需要精确限流时应把 `RateLimitStore` 换成 Redis/Upstash 实现
- * （见 docs/DEPLOYMENT.md「已知限制」）。
+ * （见 docs/ops/DEPLOYMENT.md「已知限制」）。
  */
 
 export interface RateLimitRule {

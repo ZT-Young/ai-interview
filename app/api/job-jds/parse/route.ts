@@ -2,9 +2,9 @@ import { z } from 'zod'
 
 import { requireUser } from '@/lib/api/guard'
 import { apiHandler, ok, parseJsonBody } from '@/lib/api/respond'
-import { createJobJd, updateParseState } from '@/lib/services/job-jd-service'
-import { parseJdText } from '@/lib/services/parse-service'
-import { resolvePorts } from '@/lib/services/upload-service'
+import { createJobJd, updateParseState } from '@/lib/services/handlers/job-jd-service'
+import { parseJdText } from '@/lib/services/handlers/parse-service'
+import { resolvePorts } from '@/lib/services/handlers/upload-service'
 
 /**
  * POST /api/job-jds/parse —— 粘贴 JD 文本并解析（无需文件上传）。

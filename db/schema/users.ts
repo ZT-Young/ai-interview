@@ -16,7 +16,7 @@ import { membershipLevelEnum } from './enums'
 
 /**
  * users —— 用户
- * 字段、约束与索引见 docs/DATA_MODEL.md §3.1。
+ * 字段、约束与索引见 docs/engineering/DATA_MODEL.md §3.1。
  */
 export const users = pgTable(
   'users',

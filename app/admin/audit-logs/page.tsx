@@ -2,13 +2,13 @@ import { notFound } from 'next/navigation'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAdminOrNull } from '@/lib/api/admin-guard'
-import { listAuditLogs } from '@/lib/services/admin-service'
+import { listAuditLogs } from '@/lib/services/handlers/admin-service'
 
 export const metadata = { title: '审计日志' }
 export const dynamic = 'force-dynamic'
 
 /**
- * 审计日志（只读，docs/UI.md §8.4）。
+ * 审计日志（只读，docs/design/UI.md §8.4）。
  *
  * **刻意不提供删除/修改入口**：审计日志只增不改（AGENTS.md §7 C6）。
  */

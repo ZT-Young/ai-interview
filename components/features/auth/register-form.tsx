@@ -6,7 +6,7 @@ import { useState } from 'react'
 
 import { Alert, Input, Label } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { api, ApiClientError } from '@/lib/api-client'
+import { api, ApiClientError } from '@/lib/http/api-client'
 
 /**
  * 注册表单。

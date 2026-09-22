@@ -3,7 +3,7 @@ import { and, eq, sql } from 'drizzle-orm'
 import { getDb } from '@/db/client'
 import { payments, users } from '@/db/schema'
 import { notFound } from '@/lib/api/errors'
-import type { MembershipLevel } from '@/lib/services/membership-service'
+import type { MembershipLevel } from '@/lib/services/handlers/membership-service'
 
 /**
  * 权益服务 —— **权益判定的单一真源**。
@@ -12,7 +12,7 @@ import type { MembershipLevel } from '@/lib/services/membership-service'
  * - 权益**只在服务端计算**；前端传来的任何「我已付费/我是会员」都不可信
  * - 前端只用于展示（决定按钮显隐），真正的门禁在每个 API 内重新计算
  *
- * 免费 / 付费边界（docs/UI.md §5.6）：
+ * 免费 / 付费边界（docs/design/UI.md §5.6）：
  * | 能力 | 免费 | 付费 |
  * |---|---|---|
  * | 完整面试次数 | 1 次（`free_credits`） | 无限 |

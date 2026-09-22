@@ -7,18 +7,18 @@ import { buildStorageKey, createStorage, isStorageUnavailable } from '@/lib/stor
 import {
   createResume as createResumeRecord,
   updateParseState as updateResumeParseState,
-} from '@/lib/services/resume-service'
+} from '@/lib/services/handlers/resume-service'
 import {
   createJobJd as createJobJdRecord,
   updateParseState as updateJobJdParseState,
-} from '@/lib/services/job-jd-service'
+} from '@/lib/services/handlers/job-jd-service'
 import {
   createDefaultPorts,
   parseJdFile,
   parseResumeFile,
   type ParsePorts,
   type ParsedResult,
-} from '@/lib/services/parse-service'
+} from '@/lib/services/handlers/parse-service'
 import { MAX_FILE_BYTES, extensionOf, mimeTypeOf } from '@/lib/parsing/extract'
 import { RESUME_FILE_TYPES, type ResumeFileType } from '@/lib/validators/resume'
 
@@ -86,7 +86,7 @@ function invalid(message: string): UploadError {
 /**
  * 归一化扩展名为 DB 允许的枚举值。
  * `webp` 允许上传（视觉模型可直接读），但 `resumes.file_type` 的取值域
- * 见 docs/DATA_MODEL.md §3.2，此处映射为最接近的 jpg 以免越界。
+ * 见 docs/engineering/DATA_MODEL.md §3.2，此处映射为最接近的 jpg 以免越界。
  */
 function toResumeFileType(extension: string): ResumeFileType {
   if (extension === 'webp') return 'jpg'

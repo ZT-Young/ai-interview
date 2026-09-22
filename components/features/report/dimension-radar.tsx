@@ -1,7 +1,7 @@
 import { SCORE_DIMENSION_LABELS, SCORE_DIMENSION_VALUES, type ScoreDimension } from '@/lib/constants/questions'
 
 /**
- * 六维雷达图（自绘 SVG，docs/UI.md §5.3）。
+ * 六维雷达图（自绘 SVG，docs/design/UI.md §5.3）。
  *
  * 为什么不用图表库：六维固定 0–5、数据规整，自绘 SVG 约百行即可，
  * 无客户端 JS 成本、可服务端渲染、无新依赖。

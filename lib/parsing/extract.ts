@@ -4,7 +4,7 @@ import { PDFParse } from 'pdf-parse'
 import { parseError } from './errors'
 
 /**
- * 文档文本抽取 —— 对应 docs/AI_PROMPTS.md §4 的 source 取值。
+ * 文档文本抽取 —— 对应 docs/engineering/AI_PROMPTS.md §4 的 source 取值。
  *
  * - PDF：pdf-parse v2（PDFParse class），抽取文字层
  * - DOCX：mammoth.extractRawText

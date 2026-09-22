@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 import { ResumeReviewForm, type ResumeParsedData } from '@/components/features/parse/resume-review-form'
 import { requirePageUser } from '@/lib/api/guard'
-import { getResume } from '@/lib/services/resume-service'
+import { getResume } from '@/lib/services/handlers/resume-service'
 
 export const metadata = { title: '确认简历解析结果' }
 export const dynamic = 'force-dynamic'
@@ -16,7 +16,7 @@ const EMPTY: ResumeParsedData = {
   risks: [],
 }
 
-/** 从 extraction_meta 中读取低置信度字段（docs/AI_PROMPTS.md §4.2） */
+/** 从 extraction_meta 中读取低置信度字段（docs/engineering/AI_PROMPTS.md §4.2） */
 function lowConfidenceOf(meta: unknown): string[] {
   if (meta && typeof meta === 'object' && 'low_confidence_fields' in meta) {
     const value = (meta as { low_confidence_fields?: unknown }).low_confidence_fields

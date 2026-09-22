@@ -29,7 +29,7 @@ import {
 import { consumeFreeTrial } from './payment-service'
 
 /**
- * 报告生成服务 —— docs/AI_PROMPTS.md §7。
+ * 报告生成服务 —— docs/engineering/AI_PROMPTS.md §7。
  *
  * 分工（关键）：
  * - **分数由服务端计算**（lib/ai/scoring.ts），模型不算分
@@ -56,7 +56,7 @@ export interface ReportView {
   createdAt: string
 }
 
-/** 自动生成的基础训练建议（免费可见，见 docs/UI.md §5.4） */
+/** 自动生成的基础训练建议（免费可见，见 docs/design/UI.md §5.4） */
 export interface BaseSuggestion {
   text: string
   dimension: ScoreDimension
@@ -128,7 +128,7 @@ function toView(row: typeof reports.$inferSelect): ReportView {
 }
 
 /**
- * 后置校验（docs/AI_PROMPTS.md §7.5）：
+ * 后置校验（docs/engineering/AI_PROMPTS.md §7.5）：
  * - 剔除命中敏感词/录用建议的条目
  * - 剔除「不在本次面试题目中」的参考回答（防虚构题目）
  * - 剔除「不在简历解析结果中」的简历疑点（防新增疑点）
@@ -355,7 +355,7 @@ export async function generateReport(
 
     if (!saved) throw internalError('报告写入失败')
 
-    // 免费额度消耗：**在生成报告成功之后**执行（见 docs/UI.md §5.6）
+    // 免费额度消耗：**在生成报告成功之后**执行（见 docs/design/UI.md §5.6）
     //
     // - 会员：不消耗（consumeFreeTrial 内部直接返回）
     // - 免费用户：消耗 1 次；同一报告重复生成不会重复消耗（幂等）

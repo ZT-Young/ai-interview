@@ -4,7 +4,7 @@ import { users } from './users'
 
 /**
  * audit_logs —— 审计日志（AGENTS.md §7 C6）
- * 见 docs/DATA_MODEL.md §3.10。
+ * 见 docs/engineering/DATA_MODEL.md §3.10。
  *
  * 禁止在 metadata 中写入密码、令牌明文或个人敏感信息。
  */

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 
 /**
- * 断线 / 重连提示横幅（docs/UI.md §4.5）。
+ * 断线 / 重连提示横幅（docs/design/UI.md §4.5）。
  *
  * - 离线：常驻提示，提交按钮由父组件禁用
  * - 恢复在线：短暂显示「已恢复连接」后自动隐藏，并触发一次进度同步

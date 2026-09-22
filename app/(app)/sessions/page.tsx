@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { requirePageUser } from '@/lib/api/guard'
-import { listSessions } from '@/lib/services/session-service'
+import { listSessions } from '@/lib/services/handlers/session-service'
 
 export const metadata = { title: '历史记录' }
 export const dynamic = 'force-dynamic'
@@ -22,7 +22,7 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 /**
- * 历史记录页（docs/UI.md §7）。
+ * 历史记录页（docs/design/UI.md §7）。
  *
  * 每条记录提供：查看旧报告（若有）、再次训练（复用同一简历与 JD 新建会话）。
  * 报告是否存在通过题目状态推断：`completed` 且计划已生成时才可能有报告。

@@ -6,8 +6,8 @@ import {
   BENEFIT_MATRIX,
   maskProviderOrderId,
   MEMBERSHIP_LABELS,
-} from '@/lib/services/membership-service'
-import { buildBaseSuggestions } from '@/lib/services/report-service'
+} from '@/lib/services/handlers/membership-service'
+import { buildBaseSuggestions } from '@/lib/services/handlers/report-service'
 
 function dimensions(overrides: Partial<Record<ScoreDimension, number>> = {}) {
   const base = {} as Record<ScoreDimension, number>

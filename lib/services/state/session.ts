@@ -3,7 +3,7 @@ import { validationError } from '@/lib/api/errors'
 /**
  * 面试会话状态机 —— 纯逻辑，无数据库与 Next.js 依赖，可直接单测。
  *
- * 迁移表见 docs/DATA_MODEL.md §2.2。非法迁移必须在服务层拒绝（AGENTS.md §5）。
+ * 迁移表见 docs/engineering/DATA_MODEL.md §2.2。非法迁移必须在服务层拒绝（AGENTS.md §5）。
  */
 
 export const SESSION_STATUSES = [

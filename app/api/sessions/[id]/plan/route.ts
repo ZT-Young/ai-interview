@@ -7,7 +7,7 @@ import {
   createDefaultPlanPorts,
   generatePlan,
   getSessionPlan,
-} from '@/lib/services/plan-service'
+} from '@/lib/services/handlers/plan-service'
 
 interface RouteContext {
   params: { id: string }

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { api, ApiClientError } from '@/lib/api-client'
+import { api, ApiClientError } from '@/lib/http/api-client'
 
 /**
  * 再次训练：用**同一简历与 JD**新建一个会话，并跳到它的面试计划页。

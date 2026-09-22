@@ -54,7 +54,7 @@ export class ApiError extends Error {
  * 资源不存在或不属于当前用户时统一返回 404。
  *
  * 刻意不用 403：403 会泄露「该 ID 存在」这一信息，
- * 使攻击者能枚举他人资源（见 docs/ARCHITECTURE.md §4）。
+ * 使攻击者能枚举他人资源（见 docs/engineering/ARCHITECTURE.md §4）。
  */
 export function notFound(message = '资源不存在'): ApiError {
   return new ApiError('not_found', message)

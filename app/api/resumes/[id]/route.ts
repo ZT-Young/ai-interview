@@ -1,6 +1,6 @@
 import { apiHandler, ok, parseJsonBody } from '@/lib/api/respond'
 import { requireUser } from '@/lib/api/guard'
-import { deleteResume, getResume, updateResume } from '@/lib/services/resume-service'
+import { deleteResume, getResume, updateResume } from '@/lib/services/handlers/resume-service'
 import { updateResumeSchema } from '@/lib/validators/resume'
 
 interface RouteContext {

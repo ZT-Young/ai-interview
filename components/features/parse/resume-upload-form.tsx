@@ -5,7 +5,7 @@ import { useRef, useState } from 'react'
 
 import { Alert } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { api, ApiClientError } from '@/lib/api-client'
+import { api, ApiClientError } from '@/lib/http/api-client'
 
 /**
  * 简历上传（PDF / Word / 图片）。

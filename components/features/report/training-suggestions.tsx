@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge'
 import { SCORE_DIMENSION_LABELS, type ScoreDimension } from '@/lib/constants/questions'
 
 /**
- * 下一步训练建议（docs/UI.md §5.4）。
+ * 下一步训练建议（docs/design/UI.md §5.4）。
  *
  * 免费用户至少能看到**基于低分维度自动生成的基础建议**，
  * 避免未解锁时报告页出现「什么都没有」的体验。

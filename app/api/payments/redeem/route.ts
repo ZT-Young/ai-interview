@@ -3,9 +3,9 @@ import { z } from 'zod'
 import { requireUser } from '@/lib/api/guard'
 import { apiHandler, ok, parseJsonBody } from '@/lib/api/respond'
 import { assertRateLimit } from '@/lib/observability/rate-limit'
-import { redeemCode } from '@/lib/services/redemption-service'
-import { getEntitlements } from '@/lib/services/entitlement-service'
-import { listOrders } from '@/lib/services/membership-service'
+import { redeemCode } from '@/lib/services/handlers/redemption-service'
+import { getEntitlements } from '@/lib/services/handlers/entitlement-service'
+import { listOrders } from '@/lib/services/handlers/membership-service'
 
 /**
  * POST /api/payments/redeem —— 兑换码兑换（V1 的支付替代方案）。

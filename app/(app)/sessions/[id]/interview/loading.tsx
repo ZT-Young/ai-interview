@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card'
 
-/** 面试房间加载态骨架屏（docs/UI.md §3） */
+/** 面试房间加载态骨架屏（docs/design/UI.md §3） */
 export default function InterviewLoading() {
   return (
     <main className="container max-w-3xl space-y-4 py-6" aria-busy="true" aria-live="polite">

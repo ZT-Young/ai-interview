@@ -5,7 +5,7 @@ import { containsProhibited, containsSensitive } from '@/lib/parsing/verify'
 import { envelope } from './parse'
 
 /**
- * 追问与提示的 schema —— docs/AI_PROMPTS.md §5.3 / §5.5 的代码实现。
+ * 追问与提示的 schema —— docs/engineering/AI_PROMPTS.md §5.3 / §5.5 的代码实现。
  */
 
 export const FOLLOW_UP_ACTIONS = ['follow_up', 'next_question'] as const
@@ -43,7 +43,7 @@ export const hintParseSchema = envelope(hintDataSchema)
 export type HintData = z.infer<typeof hintDataSchema>
 
 /* ------------------------------------------------------------------ *
- * 后置校验（docs/AI_PROMPTS.md §5.4）
+ * 后置校验（docs/engineering/AI_PROMPTS.md §5.4）
  * ------------------------------------------------------------------ */
 
 export interface NormalizedFollowUp {

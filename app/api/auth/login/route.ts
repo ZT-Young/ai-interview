@@ -1,7 +1,7 @@
 import { apiHandler, ok, parseJsonBody } from '@/lib/api/respond'
 import { requestContext } from '@/lib/api/guard'
 import { assertRateLimit, clientKeyFromRequest } from '@/lib/observability/rate-limit'
-import { login } from '@/lib/services/auth-service'
+import { login } from '@/lib/services/handlers/auth-service'
 import { SESSION_COOKIE_NAME, sessionCookieOptions } from '@/lib/auth/session'
 import { loginSchema } from '@/lib/validators/auth'
 

@@ -1,6 +1,6 @@
 import { requireAdmin } from '@/lib/api/admin-guard'
 import { apiHandler, ok } from '@/lib/api/respond'
-import { listAllOrders } from '@/lib/services/admin-service'
+import { listAllOrders } from '@/lib/services/handlers/admin-service'
 
 /**
  * GET /api/admin/orders —— 全部订单。

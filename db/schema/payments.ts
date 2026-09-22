@@ -17,7 +17,7 @@ import { users } from './users'
 
 /**
  * payments —— 订单、会员、次数
- * 见 docs/DATA_MODEL.md §3.9。
+ * 见 docs/engineering/DATA_MODEL.md §3.9。
  *
  * 会员与次数分离（AGENTS.md §5）：unlock_type 决定授予方式，
  * report → 解锁单份报告；package → 累加 users.free_credits；subscription → 升级 users.membership。
@@ -38,7 +38,7 @@ export const payments = pgTable(
     currency: varchar('currency', { length: 3 }).notNull().default('CNY'),
     status: paymentStatusEnum('status').notNull().default('pending'),
 
-    /** 支付渠道；具体渠道为 TBD，见 docs/ARCHITECTURE.md §7 */
+    /** 支付渠道；具体渠道为 TBD，见 docs/engineering/ARCHITECTURE.md §7 */
     provider: text('provider'),
     /** 渠道订单号，用于回调幂等 */
     providerOrderId: text('provider_order_id'),

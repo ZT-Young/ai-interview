@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { api } from '@/lib/api-client'
+import { api } from '@/lib/http/api-client'
 
 /** 退出登录：服务端置 revoked_at 使会话立即失效。 */
 export function LogoutButton() {

@@ -1,6 +1,6 @@
 import { requireAdmin } from '@/lib/api/admin-guard'
 import { apiHandler, ok } from '@/lib/api/respond'
-import { auditResumeContentView, getUserDetail } from '@/lib/services/admin-service'
+import { auditResumeContentView, getUserDetail } from '@/lib/services/handlers/admin-service'
 
 interface RouteContext {
   params: { id: string }

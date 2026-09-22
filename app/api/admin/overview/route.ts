@@ -1,6 +1,6 @@
 import { requireAdmin } from '@/lib/api/admin-guard'
 import { apiHandler, ok } from '@/lib/api/respond'
-import { getOverview } from '@/lib/services/admin-service'
+import { getOverview } from '@/lib/services/handlers/admin-service'
 
 /**
  * GET /api/admin/overview —— 后台概览。

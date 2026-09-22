@@ -25,7 +25,7 @@ import { extractJsonObject } from '@/lib/parsing/run'
  * 流程：读取会话与资料 → 组 prompt → LLM → schema 校验 → **配额与合规后置校验**
  * → 事务内写 questions 并迁移会话状态。
  *
- * 契约见 docs/AI_PROMPTS.md §4；配额规则见 §4.3。
+ * 契约见 docs/engineering/AI_PROMPTS.md §4；配额规则见 §4.3。
  */
 
 /** 生成失败时的重试次数（与解析保持一致：1 次原始 + 1 次降温重试） */
@@ -166,7 +166,7 @@ function planMaxTokens(): number {
  * 单次调用 LLM 并做 schema + 配额校验。
  *
  * 与解析模块不同：这里**不能**只用 zod —— 数量/题型配额/可溯源规则
- * 必须由 analyzePlan 判定（docs/AI_PROMPTS.md §4.3）。
+ * 必须由 analyzePlan 判定（docs/engineering/AI_PROMPTS.md §4.3）。
  *
  * ⚠️ 这里刻意**不用** `parseWithRetry`：`generatePlan` 外层已有自己的重试循环
  * （带降温与「不合规则换一次」的语义），内层再重试会导致调用次数翻倍。

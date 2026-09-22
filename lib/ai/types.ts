@@ -9,7 +9,7 @@ export interface ChatMessage {
 /**
  * 视觉输入附件（简历/JD 图片直读）。
  * 采用 base64 data URL，避免供应商侧拉取私有对象存储。
- * 支持的 MIME 见 docs/AI_PROMPTS.md §4.2（png / jpeg / webp / gif）。
+ * 支持的 MIME 见 docs/engineering/AI_PROMPTS.md §4.2（png / jpeg / webp / gif）。
  */
 export interface ChatImage {
   /** base64 编码的图片数据（不含 data URL 前缀） */

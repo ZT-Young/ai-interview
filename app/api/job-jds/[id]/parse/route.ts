@@ -1,9 +1,9 @@
 import { requireUser } from '@/lib/api/guard'
 import { errorResponse } from '@/lib/api/errors'
 import { apiHandler, ok } from '@/lib/api/respond'
-import { getJobJd, updateParseState } from '@/lib/services/job-jd-service'
-import { parseJdText } from '@/lib/services/parse-service'
-import { resolvePorts } from '@/lib/services/upload-service'
+import { getJobJd, updateParseState } from '@/lib/services/handlers/job-jd-service'
+import { parseJdText } from '@/lib/services/handlers/parse-service'
+import { resolvePorts } from '@/lib/services/handlers/upload-service'
 
 interface RouteContext {
   params: { id: string }

@@ -3,12 +3,12 @@ import { notFound } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAdminOrNull } from '@/lib/api/admin-guard'
-import { listSessions } from '@/lib/services/admin-service'
+import { listSessions } from '@/lib/services/handlers/admin-service'
 
 export const metadata = { title: '面试会话' }
 export const dynamic = 'force-dynamic'
 
-/** 面试会话概览（docs/UI.md §8.1）—— 只读，不提供改动用户面试数据的入口 */
+/** 面试会话概览（docs/design/UI.md §8.1）—— 只读，不提供改动用户面试数据的入口 */
 export default async function AdminSessionsPage() {
   // 必须在本页最早处守卫：layout 与 page 并行渲染，layout 的 notFound() 拦不住本页取数
   const admin = await getAdminOrNull()

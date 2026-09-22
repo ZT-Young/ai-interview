@@ -4,8 +4,8 @@ import { and, eq, isNull } from 'drizzle-orm'
 import { getDb } from '@/db/client'
 import { sessions, users } from '@/db/schema'
 import { resolveSessionUser } from '@/lib/auth/verify-session'
-import { deleteUserAccount, exportUserData } from '@/lib/services/data-rights-service'
-import { login } from '@/lib/services/auth-service'
+import { deleteUserAccount, exportUserData } from '@/lib/services/handlers/data-rights-service'
+import { login } from '@/lib/services/handlers/auth-service'
 import type { StoragePort } from '@/lib/storage/s3'
 
 import {
@@ -206,7 +206,7 @@ describe.skipIf(!hasTestDatabase())(
         await deleteUserAccount(user.id, {}, fakeStorage().storage)
 
         // 同一邮箱可再次注册（users_email_unique 带 deleted_at IS NULL 条件）
-        const { register } = await import('@/lib/services/auth-service')
+        const { register } = await import('@/lib/services/handlers/auth-service')
         const again = await register({
           email: user.email,
           password: TEST_PASSWORD,

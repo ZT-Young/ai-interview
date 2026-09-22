@@ -285,7 +285,7 @@ export async function updateProfile(
  * 软删除当前用户（AGENTS.md §7 C3：用户可删除个人数据）。
  *
  * 同时吊销全部会话 —— 删除后必须立即无法继续访问。
- * 真实删除 S3 对象与硬删由后续 Phase 的清理任务完成（见 docs/DATA_MODEL.md §6）。
+ * 真实删除 S3 对象与硬删由后续 Phase 的清理任务完成（见 docs/engineering/DATA_MODEL.md §6）。
  */
 export async function deleteAccount(id: string, meta: RequestMeta = {}): Promise<void> {
   const db = getDb()

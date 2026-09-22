@@ -9,7 +9,7 @@ import { apiHandler, ok } from '@/lib/api/respond'
 import type { JdData, ResumeData } from '@/lib/ai/schemas/parse'
 import type { LlmPort } from '@/lib/parsing/llm-port'
 import { OpenAiCompatibleLlm } from '@/lib/parsing/llm-port'
-import { matchResumeToJd } from '@/lib/services/match-service'
+import { matchResumeToJd } from '@/lib/services/handlers/match-service'
 
 interface RouteContext {
   params: { id: string }

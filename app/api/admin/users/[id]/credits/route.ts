@@ -6,7 +6,7 @@ import {
   adjustFreeCredits,
   MAX_FREE_CREDITS,
   MIN_FREE_CREDITS,
-} from '@/lib/services/admin-service'
+} from '@/lib/services/handlers/admin-service'
 
 interface RouteContext {
   params: { id: string }

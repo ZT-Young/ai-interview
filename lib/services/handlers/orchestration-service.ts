@@ -23,12 +23,12 @@ import { parseWithRetry } from '@/lib/parsing/run'
 import {
   assertPhaseTransition,
   type OrchestrationPhase,
-} from './orchestration-state'
+} from '../state/orchestration'
 
 /**
  * 面试编排服务 —— ③ 领域服务层。
  *
- * 服务端状态机控制全部流程（docs/ARCHITECTURE.md §3.6）：
+ * 服务端状态机控制全部流程（docs/engineering/ARCHITECTURE.md §3.6）：
  * - **一次只问一个问题**：任何响应最多返回一条 question / follow_up
  * - **每主问题最多 2 层追问**：由本服务按 root_id 统计 depth 强制，忽略模型越界请求
  * - **太短用确定性阈值**：去空白后 < 30 字符直接判 too_short，不调用模型

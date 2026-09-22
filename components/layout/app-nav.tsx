@@ -16,8 +16,8 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { api } from '@/lib/api-client'
-import { cn } from '@/lib/utils'
+import { api } from '@/lib/http/api-client'
+import { cn } from '@/lib/utils/index'
 
 const NAV_ITEMS = [
   { href: '/resumes', label: '简历', icon: FileText },

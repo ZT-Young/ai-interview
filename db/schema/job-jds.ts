@@ -4,7 +4,7 @@ import { users } from './users'
 
 /**
  * job_jds —— 岗位 JD
- * 见 docs/DATA_MODEL.md §3.3。
+ * 见 docs/engineering/DATA_MODEL.md §3.3。
  */
 export const jobJds = pgTable(
   'job_jds',
@@ -20,11 +20,11 @@ export const jobJds = pgTable(
 
     /** JD 原文（粘贴或从文件抽取） */
     rawText: text('raw_text').notNull(),
-    /** 结构化要求；JSON Schema 见 docs/AI_PROMPTS.md（待创建） */
+    /** 结构化要求；JSON Schema 见 docs/engineering/AI_PROMPTS.md（待创建） */
     parsedData: jsonb('parsed_data'),
     parseStatus: parseStatusEnum('parse_status').notNull().default('pending'),
     parseError: text('parse_error'),
-    /** 抽取元信息，见 docs/AI_PROMPTS.md §4.2 */
+    /** 抽取元信息，见 docs/engineering/AI_PROMPTS.md §4.2 */
     extractionMeta: jsonb('extraction_meta'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

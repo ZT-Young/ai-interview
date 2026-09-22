@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { PlanView, type PlanQuestionItem } from '@/components/features/plan/plan-view'
 import { MatchPanel, type MatchAnalysisData } from '@/components/features/plan/match-panel'
 import { requirePageUser } from '@/lib/api/guard'
-import { getSessionPlan } from '@/lib/services/plan-service'
+import { getSessionPlan } from '@/lib/services/handlers/plan-service'
 
 export const metadata = { title: '面试计划' }
 export const dynamic = 'force-dynamic'

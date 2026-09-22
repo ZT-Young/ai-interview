@@ -3,7 +3,7 @@ import { questionSourceEnum, questionTypeEnum, scoreDimensionEnum } from '@/db/s
 /**
  * 题型 / 来源 / 评分维度的取值 —— 从 DB 枚举派生，保证与迁移一致。
  *
- * 单一真源仍是 `db/schema/enums.ts`（docs/DATA_MODEL.md §2）；
+ * 单一真源仍是 `db/schema/enums.ts`（docs/engineering/DATA_MODEL.md §2）；
  * 本文件只做「给 zod 用的字面量数组」，避免在 schema 里硬编码字符串。
  */
 export const QUESTION_TYPE_VALUES = questionTypeEnum.enumValues

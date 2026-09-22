@@ -5,7 +5,7 @@ import { LogoutButton } from '@/components/features/auth/logout-button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { requirePageUser } from '@/lib/api/guard'
 import { legalPath, listLegalDocuments } from '@/lib/legal/documents'
-import { getEntitlements } from '@/lib/services/entitlement-service'
+import { getEntitlements } from '@/lib/services/handlers/entitlement-service'
 
 export const metadata = { title: '账户设置' }
 export const dynamic = 'force-dynamic'

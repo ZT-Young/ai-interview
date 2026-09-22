@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/index'
 import { formatDuration } from './question-timer'
 
 /**
  * 按住说话（语音输入）。
  *
- * 交互（docs/UI.md §4.3）：
+ * 交互（docs/design/UI.md §4.3）：
  *   pointerdown 开始录音 → 松开停止 → 上传 → 转写文本填入输入框（**不自动提交**）
  *
  * 安全：音频只上传到本站 `POST /api/sessions/:id/answers/audio`，

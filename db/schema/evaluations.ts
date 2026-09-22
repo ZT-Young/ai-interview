@@ -16,7 +16,7 @@ import { interviewSessions, questions } from './interview-sessions'
 
 /**
  * evaluations —— 逐题评分
- * 见 docs/DATA_MODEL.md §3.7。
+ * 见 docs/engineering/DATA_MODEL.md §3.7。
  *
  * evidence_quotes 非空由 CHECK 约束强制 —— 「评分必须引用回答证据」（AGENTS.md §6.1 N6）
  * 因此在数据库层无法绕过。

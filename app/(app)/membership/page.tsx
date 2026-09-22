@@ -7,8 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { requirePageUser } from '@/lib/api/guard'
 import { listProducts } from '@/lib/payments/products'
 import { isPaymentConfigured } from '@/lib/payments/provider'
-import { getEntitlements } from '@/lib/services/entitlement-service'
-import { getMembership } from '@/lib/services/membership-service'
+import { getEntitlements } from '@/lib/services/handlers/entitlement-service'
+import { getMembership } from '@/lib/services/handlers/membership-service'
 
 export const metadata = { title: '会员与权益' }
 export const dynamic = 'force-dynamic'
@@ -19,7 +19,7 @@ function formatPrice(cents: number, currency: string): string {
 }
 
 /**
- * 会员页（docs/UI.md §6）。
+ * 会员页（docs/design/UI.md §6）。
  *
  * 展示免费次数、权益对照、商品与兑换码入口。
  * **升级按钮仅在支付渠道配置后启用**，否则只显示兑换码路径 ——

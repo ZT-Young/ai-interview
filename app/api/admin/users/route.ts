@@ -1,6 +1,6 @@
 import { requireAdmin } from '@/lib/api/admin-guard'
 import { apiHandler, ok } from '@/lib/api/respond'
-import { listUsers } from '@/lib/services/admin-service'
+import { listUsers } from '@/lib/services/handlers/admin-service'
 
 /**
  * GET /api/admin/users —— 用户列表。

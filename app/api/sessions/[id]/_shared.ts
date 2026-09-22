@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import type { LlmPort } from '@/lib/parsing/llm-port'
 import { OpenAiCompatibleLlm } from '@/lib/parsing/llm-port'
-import type { OrchestrationPorts } from '@/lib/services/orchestration-service'
+import type { OrchestrationPorts } from '@/lib/services/handlers/orchestration-service'
 
 /**
  * 面试编排路由的共用部分。

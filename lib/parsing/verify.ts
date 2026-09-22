@@ -1,7 +1,7 @@
 import type { JdData, MatchData, ResumeData } from '../ai/schemas/parse'
 
 /**
- * 输出后置校验 —— docs/AI_PROMPTS.md §5 的代码实现。
+ * 输出后置校验 —— docs/engineering/AI_PROMPTS.md §5 的代码实现。
  *
  * 不依赖模型自觉：对已通过 schema 校验的结果再做一次规则化过滤。
  * 命中禁止项的内容会被**丢弃**（而非报错），并记录在 dropped 中供审计。
@@ -58,7 +58,7 @@ export function matchesAny(value: string, patterns: readonly RegExp[]): boolean 
   return patterns.some((pattern) => pattern.test(value))
 }
 
-/** 供出题等其它模块复用（docs/AI_PROMPTS.md §4.3、§6.3） */
+/** 供出题等其它模块复用（docs/engineering/AI_PROMPTS.md §4.3、§6.3） */
 export function containsSensitive(value: string): boolean {
   return matchesAny(value, SENSITIVE_PATTERNS)
 }

@@ -220,7 +220,7 @@ export async function grantEntitlement(paymentId: string): Promise<GrantResult> 
  * ------------------------------------------------------------------ */
 
 /**
- * 消耗一次免费额度（生成报告时调用，见 docs/UI.md §5.6）。
+ * 消耗一次免费额度（生成报告时调用，见 docs/design/UI.md §5.6）。
  *
  * 校验顺序（全部服务端）：
  * 1. 会员不受限，不消耗

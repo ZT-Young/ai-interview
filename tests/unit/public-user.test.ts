@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { toPublicUser } from '@/lib/services/auth-service'
+import { toPublicUser } from '@/lib/services/handlers/auth-service'
 import type { User } from '@/db/schema'
 
 const row: User = {

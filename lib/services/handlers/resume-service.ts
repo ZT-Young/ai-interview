@@ -184,7 +184,7 @@ export async function requireOwnedResume(userId: string, id: string): Promise<vo
  * 写入解析结果（成功或失败）。
  *
  * 失败时**必须保留 rawText**，用户才能手动修改（AGENTS.md §2 第 4 步）。
- * parseError 存面向用户的中文提示（见 docs/AI_PROMPTS.md §4.3）。
+ * parseError 存面向用户的中文提示（见 docs/engineering/AI_PROMPTS.md §4.3）。
  */
 export async function updateParseState(
   userId: string,

@@ -11,7 +11,7 @@ import {
   TextField,
 } from '@/components/features/parse/field-editors'
 import { Badge } from '@/components/ui/badge'
-import { api, ApiClientError } from '@/lib/api-client'
+import { api, ApiClientError } from '@/lib/http/api-client'
 import { Alert } from '@/components/ui/input'
 
 /** 与 lib/ai/schemas/parse.ts 的 resumeDataSchema 对齐（前端编辑用宽松类型） */

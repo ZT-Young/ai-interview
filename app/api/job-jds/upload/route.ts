@@ -5,7 +5,7 @@ import {
   isUploadError,
   readUploadedFile,
   uploadAndParse,
-} from '@/lib/services/upload-service'
+} from '@/lib/services/handlers/upload-service'
 
 /**
  * POST /api/job-jds/upload —— 上传 JD 图片并解析（视觉模型直读）。

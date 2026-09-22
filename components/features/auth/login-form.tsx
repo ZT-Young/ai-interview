@@ -5,7 +5,7 @@ import { useState } from 'react'
 
 import { Alert, Input, Label } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { api, ApiClientError } from '@/lib/api-client'
+import { api, ApiClientError } from '@/lib/http/api-client'
 
 /** 登录表单。失败提示由服务端统一给出（不区分账号不存在与密码错误）。 */
 export function LoginForm() {

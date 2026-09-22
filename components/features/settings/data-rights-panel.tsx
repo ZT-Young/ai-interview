@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { Alert, Input, Label } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { api, ApiClientError } from '@/lib/api-client'
+import { api, ApiClientError } from '@/lib/http/api-client'
 
 /**
  * 账户设置中的数据权利操作（AGENTS.md §7 C3）。

@@ -9,7 +9,7 @@ import {
   ORCHESTRATION_PHASES,
   pathTo,
   type OrchestrationPhase,
-} from '@/lib/services/orchestration-state'
+} from '@/lib/services/state/orchestration'
 
 describe('编排状态机', () => {
   it('九个阶段齐备且顺序符合需求', () => {

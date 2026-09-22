@@ -1,5 +1,5 @@
 /**
- * Drizzle schema 汇聚出口 —— 单一真源，见 docs/DATA_MODEL.md。
+ * Drizzle schema 汇聚出口 —— 单一真源，见 docs/engineering/DATA_MODEL.md。
  */
 export * from './enums'
 export * from './users'

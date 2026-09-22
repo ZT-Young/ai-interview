@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 
 import { apiHandler, ok } from '@/lib/api/respond'
 import { requestContext } from '@/lib/api/guard'
-import { logout } from '@/lib/services/auth-service'
+import { logout } from '@/lib/services/handlers/auth-service'
 import { SESSION_COOKIE_NAME } from '@/lib/auth/session'
 
 /**

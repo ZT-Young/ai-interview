@@ -7,7 +7,7 @@ import { activeForUser, ownedByActive } from '@/lib/api/ownership'
 
 import { requireOwnedJobJd } from './job-jd-service'
 import { requireOwnedResume } from './resume-service'
-import { assertTransition, type SessionStatus } from './session-state'
+import { assertTransition, type SessionStatus } from '../state/session'
 
 import {
   DEFAULT_SESSION_CONFIG,

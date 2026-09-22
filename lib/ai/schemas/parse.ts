@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 /**
- * AI 结构化输出的 zod schema —— docs/AI_PROMPTS.md 的代码实现。
+ * AI 结构化输出的 zod schema —— docs/engineering/AI_PROMPTS.md 的代码实现。
  *
  * 硬性约定：
  * - 所有对象 `.strict()`（等价 JSON Schema 的 additionalProperties: false）
@@ -37,7 +37,7 @@ const textArray = (maxItems: number, maxLength: number) =>
     .transform((value) => value ?? [])
 
 /* ------------------------------------------------------------------ *
- * 1. JD 解析（docs/AI_PROMPTS.md §1.2）
+ * 1. JD 解析（docs/engineering/AI_PROMPTS.md §1.2）
  * ------------------------------------------------------------------ */
 
 export const jdDataSchema = z
@@ -55,7 +55,7 @@ export const jdParseSchema = envelope(jdDataSchema)
 export type JdData = z.infer<typeof jdDataSchema>
 
 /* ------------------------------------------------------------------ *
- * 2. 简历解析（docs/AI_PROMPTS.md §2.2）
+ * 2. 简历解析（docs/engineering/AI_PROMPTS.md §2.2）
  * ------------------------------------------------------------------ */
 
 export const resumeProjectSchema = z
@@ -111,7 +111,7 @@ export type ResumeProject = z.infer<typeof resumeProjectSchema>
 export type ResumeEducation = z.infer<typeof resumeEducationSchema>
 
 /* ------------------------------------------------------------------ *
- * 3. 匹配分析（docs/AI_PROMPTS.md §3.2）
+ * 3. 匹配分析（docs/engineering/AI_PROMPTS.md §3.2）
  * ------------------------------------------------------------------ */
 
 export const matchAdvantageSchema = z
@@ -155,7 +155,7 @@ export const matchParseSchema = envelope(matchDataSchema)
 export type MatchData = z.infer<typeof matchDataSchema>
 
 /* ------------------------------------------------------------------ *
- * 4. 抽取元信息（docs/AI_PROMPTS.md §4.2）
+ * 4. 抽取元信息（docs/engineering/AI_PROMPTS.md §4.2）
  * ------------------------------------------------------------------ */
 
 export const EXTRACT_SOURCES = ['pdf', 'docx', 'doc', 'image', 'text'] as const
@@ -175,7 +175,7 @@ export const extractionMetaSchema = z.object({
 export type ExtractionMeta = z.infer<typeof extractionMetaSchema>
 
 /* ------------------------------------------------------------------ *
- * 5. 空内容检测辅助（docs/AI_PROMPTS.md §5.1）
+ * 5. 空内容检测辅助（docs/engineering/AI_PROMPTS.md §5.1）
  * ------------------------------------------------------------------ */
 
 /** JD 全空判定：所有字段都为空时视为解析失败 */

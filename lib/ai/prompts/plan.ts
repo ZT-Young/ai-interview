@@ -3,7 +3,7 @@ import { MAX_QUESTIONS, MIN_QUESTIONS, TYPE_MAX } from '../schemas/plan'
 import type { PromptTemplate } from './parse'
 
 /**
- * 面试计划（出题）prompt —— docs/AI_PROMPTS.md §4.1 的代码实现。
+ * 面试计划（出题）prompt —— docs/engineering/AI_PROMPTS.md §4.1 的代码实现。
  */
 
 export interface PlanPromptInput {

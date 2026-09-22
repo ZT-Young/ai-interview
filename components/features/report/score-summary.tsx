@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 
 /**
- * 总分与岗位匹配度（docs/UI.md §5.2）。
+ * 总分与岗位匹配度（docs/design/UI.md §5.2）。
  *
  * 两者语义不同，**不得合并成一个数字**：
  * - 总分：基于实际回答表现

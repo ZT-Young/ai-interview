@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { JdData, ResumeData } from '@/lib/ai/schemas/parse'
-import { matchResumeToJd } from '@/lib/services/match-service'
+import { matchResumeToJd } from '@/lib/services/handlers/match-service'
 
 import { FakeLlm, llmUnavailableError } from '../helpers/fakes'
 

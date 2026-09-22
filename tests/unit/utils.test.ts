@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/index'
 
 describe('cn', () => {
   it('合并类名', () => {

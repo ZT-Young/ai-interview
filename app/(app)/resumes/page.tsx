@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { requirePageUser } from '@/lib/api/guard'
-import { listResumes } from '@/lib/services/resume-service'
+import { listResumes } from '@/lib/services/handlers/resume-service'
 
 export const metadata = { title: '简历' }
 export const dynamic = 'force-dynamic'

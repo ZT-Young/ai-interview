@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/index'
 
 /** 秒 → mm:ss */
 export function formatDuration(totalSeconds: number): string {
@@ -16,7 +16,7 @@ export function formatDuration(totalSeconds: number): string {
  * 当前题计时（唯一实现）。
  *
  * 从题目出现开始计时；换题（questionId 变化）即重置。
- * **不强制限时**——超时不会自动提交，仅作节奏参考（docs/UI.md §4.2）。
+ * **不强制限时**——超时不会自动提交，仅作节奏参考（docs/design/UI.md §4.2）。
  */
 export function useQuestionElapsed(questionId: string | null, running: boolean): number {
   const [seconds, setSeconds] = useState(0)

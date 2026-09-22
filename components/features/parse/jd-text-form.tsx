@@ -5,7 +5,7 @@ import { useState } from 'react'
 
 import { Alert, Label } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { api, ApiClientError } from '@/lib/api-client'
+import { api, ApiClientError } from '@/lib/http/api-client'
 
 /** 粘贴 JD 文本并解析（最小可用输入路径） */
 export function JdTextForm() {

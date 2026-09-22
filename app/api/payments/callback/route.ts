@@ -9,7 +9,7 @@ import { ok } from '@/lib/api/respond'
 import { getProduct } from '@/lib/payments/products'
 import { verifyCallbackSignature } from '@/lib/payments/provider'
 import { assertRateLimit, clientKeyFromRequest } from '@/lib/observability/rate-limit'
-import { grantEntitlement } from '@/lib/services/payment-service'
+import { grantEntitlement } from '@/lib/services/handlers/payment-service'
 
 /**
  * POST /api/payments/callback —— 支付渠道回调。

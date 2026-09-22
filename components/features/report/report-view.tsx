@@ -6,8 +6,8 @@ import { Alert } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { api, ApiClientError } from '@/lib/api-client'
-import { cn } from '@/lib/utils'
+import { api, ApiClientError } from '@/lib/http/api-client'
+import { cn } from '@/lib/utils/index'
 
 import { DimensionRadar } from './dimension-radar'
 import { ScoreSummary } from './score-summary'
@@ -111,7 +111,7 @@ function ReferenceAnswerBody({ text }: { text: string }) {
 }
 
 /**
- * 报告主容器（docs/UI.md §5）。
+ * 报告主容器（docs/design/UI.md §5）。
  *
  * 免费可见：总分、岗位匹配度、六维雷达与数值、总评、优势、基础训练建议
  * 付费解锁：待改进、参考回答、简历风险点、完整建议、逐题反馈

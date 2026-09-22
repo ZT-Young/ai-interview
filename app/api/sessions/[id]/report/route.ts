@@ -1,8 +1,8 @@
 import { requireUser } from '@/lib/api/guard'
 import { serviceUnavailable, upstreamError } from '@/lib/api/errors'
 import { apiHandler, ok, parseJsonBody } from '@/lib/api/respond'
-import { listEvaluations } from '@/lib/services/evaluation-service'
-import { generateReport, getReportBySession } from '@/lib/services/report-service'
+import { listEvaluations } from '@/lib/services/handlers/evaluation-service'
+import { generateReport, getReportBySession } from '@/lib/services/handlers/report-service'
 
 import {
   reportBodySchema,

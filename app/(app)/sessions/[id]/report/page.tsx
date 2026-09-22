@@ -9,14 +9,14 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ApiError } from '@/lib/api/errors'
 import { requirePageUser } from '@/lib/api/guard'
-import { listEvaluations } from '@/lib/services/evaluation-service'
-import { getReportBySession } from '@/lib/services/report-service'
+import { listEvaluations } from '@/lib/services/handlers/evaluation-service'
+import { getReportBySession } from '@/lib/services/handlers/report-service'
 
 export const metadata = { title: '面试报告' }
 export const dynamic = 'force-dynamic'
 
 /**
- * 面试报告页（docs/UI.md §5）。
+ * 面试报告页（docs/design/UI.md §5）。
  *
  * 服务端只下发「用户有权看到」的内容：
  * - 未解锁 → 付费区块内容不下发，仅给 `lockedSections` 字段名用于渲染遮罩（C 端付费墙）

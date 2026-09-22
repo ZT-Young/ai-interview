@@ -2,7 +2,7 @@ import { SCORE_DIMENSION_VALUES, type ScoreDimension } from '@/lib/constants/que
 import type { DimensionScores } from '@/lib/ai/schemas/evaluation'
 
 /**
- * 评分公式 —— docs/DATA_MODEL.md §5 的**唯一实现**。
+ * 评分公式 —— docs/engineering/DATA_MODEL.md §5 的**唯一实现**。
  *
  * 要求（AGENTS.md §6.2）：维度分 → 总分的换算必须显式实现且可单测，
  * 不得散落在模板或 SQL 中计算。

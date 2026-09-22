@@ -28,17 +28,17 @@ loadEnv({ path: '.env' })
 const { getDb, closeDb, hasDatabaseUrl } = await import('@/db/client')
 const { interviewSessions } = await import('@/db/schema')
 const { eq } = await import('drizzle-orm')
-const { register } = await import('@/lib/services/auth-service')
+const { register } = await import('@/lib/services/handlers/auth-service')
 const { createResume, updateParseState: updateResumeParseState } =
-  await import('@/lib/services/resume-service')
+  await import('@/lib/services/handlers/resume-service')
 const { createJobJd, updateParseState: updateJdParseState } =
-  await import('@/lib/services/job-jd-service')
-const { createSession } = await import('@/lib/services/session-service')
-const { generatePlan } = await import('@/lib/services/plan-service')
-const { submitAnswer } = await import('@/lib/services/orchestration-service')
-const { evaluateAnswer } = await import('@/lib/services/evaluation-service')
-const { generateReport } = await import('@/lib/services/report-service')
-const { createOrder, grantEntitlement } = await import('@/lib/services/payment-service')
+  await import('@/lib/services/handlers/job-jd-service')
+const { createSession } = await import('@/lib/services/handlers/session-service')
+const { generatePlan } = await import('@/lib/services/handlers/plan-service')
+const { submitAnswer } = await import('@/lib/services/handlers/orchestration-service')
+const { evaluateAnswer } = await import('@/lib/services/handlers/evaluation-service')
+const { generateReport } = await import('@/lib/services/handlers/report-service')
+const { createOrder, grantEntitlement } = await import('@/lib/services/handlers/payment-service')
 
 const PASSWORD = 'Test-Password-123'
 const WRITE_ENV = process.argv.includes('--write')
@@ -186,7 +186,7 @@ async function currentQuestionId(sessionId: string): Promise<string | null> {
 
 /** 把会话跑完整场面试并生成报告（面试房间用例**不能**用这个会话） */
 async function completeInterview(userId: string, sessionId: string): Promise<string> {
-  const { startInterview } = await import('@/lib/services/orchestration-service')
+  const { startInterview } = await import('@/lib/services/handlers/orchestration-service')
   await startInterview(userId, sessionId)
 
   for (let i = 0; i < PLAN_QUESTIONS.length; i += 1) {

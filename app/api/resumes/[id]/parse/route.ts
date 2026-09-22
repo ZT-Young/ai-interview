@@ -1,8 +1,8 @@
 import { requireUser } from '@/lib/api/guard'
 import { apiHandler, ok } from '@/lib/api/respond'
-import { getResume, updateParseState } from '@/lib/services/resume-service'
-import { parseResumeFile } from '@/lib/services/parse-service'
-import { errorResponse, resolvePorts } from '@/lib/services/upload-service'
+import { getResume, updateParseState } from '@/lib/services/handlers/resume-service'
+import { parseResumeFile } from '@/lib/services/handlers/parse-service'
+import { errorResponse, resolvePorts } from '@/lib/services/handlers/upload-service'
 import { mimeTypeOf } from '@/lib/parsing/extract'
 
 interface RouteContext {

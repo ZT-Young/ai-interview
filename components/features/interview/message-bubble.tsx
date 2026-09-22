@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/index'
 
 import { InterviewerAvatar } from './interviewer-avatar'
 
@@ -39,7 +39,7 @@ const REASON_LABEL: Record<string, string> = {
  * 消息气泡。
  *
  * - AI 左对齐、用户右对齐、系统居中无气泡
- * - **角色以文本前缀表达**（面试官 / 你 / 系统），不仅靠左右对齐（无障碍要求，见 docs/UI.md §6）
+ * - **角色以文本前缀表达**（面试官 / 你 / 系统），不仅靠左右对齐（无障碍要求，见 docs/design/UI.md §6）
  */
 export function MessageBubble({
   role,

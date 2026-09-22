@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 import { JdReviewForm, type JdParsedData } from '@/components/features/parse/jd-review-form'
 import { requirePageUser } from '@/lib/api/guard'
-import { getJobJd } from '@/lib/services/job-jd-service'
+import { getJobJd } from '@/lib/services/handlers/job-jd-service'
 
 export const metadata = { title: '确认 JD 解析结果' }
 export const dynamic = 'force-dynamic'

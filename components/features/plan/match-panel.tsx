@@ -7,7 +7,7 @@ import { Alert } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { api, ApiClientError } from '@/lib/api-client'
+import { api, ApiClientError } from '@/lib/http/api-client'
 
 export interface MatchAnalysisData {
   match_score: number
@@ -20,7 +20,7 @@ export interface MatchAnalysisData {
  * 匹配分析展示与生成。
  *
  * 生成面试计划需要 match_analysis 作为输入，因此这是出题的前置步骤
- * （见 docs/AI_PROMPTS.md §3、§4）。
+ * （见 docs/engineering/AI_PROMPTS.md §3、§4）。
  *
  * match_score 仅表示简历与 JD 的**静态匹配程度**，用于帮用户定位准备重点，
  * **不是**能力评价，也不用于任何筛选决策。

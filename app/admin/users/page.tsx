@@ -4,13 +4,13 @@ import { CreditsAdjustForm } from '@/components/features/admin/credits-adjust-fo
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAdminOrNull } from '@/lib/api/admin-guard'
-import { isResumeContentVisible, listUsers } from '@/lib/services/admin-service'
+import { isResumeContentVisible, listUsers } from '@/lib/services/handlers/admin-service'
 
 export const metadata = { title: '用户管理' }
 export const dynamic = 'force-dynamic'
 
 /**
- * 用户列表（docs/UI.md §8.1）。
+ * 用户列表（docs/design/UI.md §8.1）。
  *
  * **不展示简历原文** —— 只展示简历数量；原文需要单独的详情页 + 开关 + 审计。
  */

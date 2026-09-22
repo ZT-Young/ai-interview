@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { requireAdmin } from '@/lib/api/admin-guard'
 import { validationError } from '@/lib/api/errors'
 import { apiHandler, ok } from '@/lib/api/respond'
-import { listAiLogs } from '@/lib/services/admin-service'
+import { listAiLogs } from '@/lib/services/handlers/admin-service'
 
 const querySchema = z.object({
   status: z.enum(['success', 'error']).optional(),

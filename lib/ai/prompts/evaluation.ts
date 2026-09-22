@@ -2,7 +2,7 @@ import { SCHEMA_VERSION } from '../schemas/parse'
 import type { PromptTemplate } from './parse'
 
 /**
- * 逐题评分与报告生成的 prompt —— docs/AI_PROMPTS.md §6.2 / §7.2 的代码实现。
+ * 逐题评分与报告生成的 prompt —— docs/engineering/AI_PROMPTS.md §6.2 / §7.2 的代码实现。
  */
 
 export interface EvaluationPromptInput {

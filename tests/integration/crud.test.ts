@@ -1,15 +1,15 @@
 import { afterAll, describe, expect, it } from 'vitest'
 
 import { ApiError } from '@/lib/api/errors'
-import { createResume, getResume, listResumes, updateResume } from '@/lib/services/resume-service'
-import { createJobJd, getJobJd, updateJobJd } from '@/lib/services/job-jd-service'
+import { createResume, getResume, listResumes, updateResume } from '@/lib/services/handlers/resume-service'
+import { createJobJd, getJobJd, updateJobJd } from '@/lib/services/handlers/job-jd-service'
 import {
   createSession,
   getSession,
   listSessions,
   transitionSession,
   updateSession,
-} from '@/lib/services/session-service'
+} from '@/lib/services/handlers/session-service'
 import { DEFAULT_SESSION_CONFIG } from '@/lib/validators/session'
 
 import {

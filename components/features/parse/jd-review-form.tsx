@@ -7,7 +7,7 @@ import { Alert } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ListEditor, ParseErrorNotice, SaveBar, TextField } from '@/components/features/parse/field-editors'
-import { api, ApiClientError } from '@/lib/api-client'
+import { api, ApiClientError } from '@/lib/http/api-client'
 
 /** 与 lib/ai/schemas/parse.ts 的 jdDataSchema 对齐 */
 export interface JdParsedData {

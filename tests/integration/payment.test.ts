@@ -11,10 +11,10 @@ import {
   createOrder,
   FREE_TRIAL_LIMIT,
   grantEntitlement,
-} from '@/lib/services/payment-service'
-import { hasReportUnlock, getEntitlements } from '@/lib/services/entitlement-service'
-import { redeemCode } from '@/lib/services/redemption-service'
-import { getReportBySession } from '@/lib/services/report-service'
+} from '@/lib/services/handlers/payment-service'
+import { hasReportUnlock, getEntitlements } from '@/lib/services/handlers/entitlement-service'
+import { redeemCode } from '@/lib/services/handlers/redemption-service'
+import { getReportBySession } from '@/lib/services/handlers/report-service'
 
 import {
   createTestUser,

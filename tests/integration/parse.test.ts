@@ -1,8 +1,8 @@
 import { afterAll, describe, expect, it } from 'vitest'
 
-import { getResume, listResumes } from '@/lib/services/resume-service'
-import { getJobJd, listJobJds } from '@/lib/services/job-jd-service'
-import { parseJdText, parseResumeFile } from '@/lib/services/parse-service'
+import { getResume, listResumes } from '@/lib/services/handlers/resume-service'
+import { getJobJd, listJobJds } from '@/lib/services/handlers/job-jd-service'
+import { parseJdText, parseResumeFile } from '@/lib/services/handlers/parse-service'
 import type { ResumeData } from '@/lib/ai/schemas/parse'
 
 import { buildPdf } from '../fixtures/documents'
@@ -78,7 +78,7 @@ describe.skipIf(!hasTestDatabase())(
         contentType: 'application/pdf',
       })
 
-      const { createResume, updateParseState } = await import('@/lib/services/resume-service')
+      const { createResume, updateParseState } = await import('@/lib/services/handlers/resume-service')
       const record = await createResume(user.id, {
         fileName: 'resume.pdf',
         fileType: 'pdf',
@@ -114,7 +114,7 @@ describe.skipIf(!hasTestDatabase())(
       const key = `resumes/${user.id}/broken.pdf`
       await storage.putObject({ key, body: Buffer.from('not a pdf'), contentType: 'application/pdf' })
 
-      const { createResume, updateParseState } = await import('@/lib/services/resume-service')
+      const { createResume, updateParseState } = await import('@/lib/services/handlers/resume-service')
       const record = await createResume(user.id, {
         fileName: 'broken.pdf',
         fileType: 'pdf',
@@ -146,7 +146,7 @@ describe.skipIf(!hasTestDatabase())(
 
     it('JD 文本解析结果写入 title / company / parsed_data', async () => {
       const user = await newUser('parse-jd')
-      const { createJobJd, updateParseState } = await import('@/lib/services/job-jd-service')
+      const { createJobJd, updateParseState } = await import('@/lib/services/handlers/job-jd-service')
 
       const record = await createJobJd(user.id, { rawText: JD_TEXT })
       const parsed = await parseJdText(
@@ -186,7 +186,7 @@ describe.skipIf(!hasTestDatabase())(
       const owner = await newUser('parse-owner')
       const intruder = await newUser('parse-intruder')
 
-      const { createResume } = await import('@/lib/services/resume-service')
+      const { createResume } = await import('@/lib/services/handlers/resume-service')
       const record = await createResume(owner.id, {
         fileName: 'private.pdf',
         fileType: 'pdf',

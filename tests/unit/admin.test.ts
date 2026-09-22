@@ -5,7 +5,7 @@ import {
   isResumeContentVisible,
   MAX_FREE_CREDITS,
   MIN_FREE_CREDITS,
-} from '@/lib/services/admin-service'
+} from '@/lib/services/handlers/admin-service'
 
 /**
  * 管理后台的**离线**测试（不需要数据库）。

@@ -12,7 +12,7 @@ import { StorageUnavailableError } from './errors'
  * 对象存储端口 —— 简历原件存储。
  *
  * 供应商（Cloudflare R2 / AWS S3 / MinIO）由环境变量切换，
- * 调用方只依赖本接口，替换供应商不改业务代码（docs/ARCHITECTURE.md §7）。
+ * 调用方只依赖本接口，替换供应商不改业务代码（docs/engineering/ARCHITECTURE.md §7）。
  */
 
 export interface PutObjectInput {

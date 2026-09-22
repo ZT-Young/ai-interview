@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { readEnvGroup } from '@/lib/env'
+import { readEnvGroup } from '@/lib/config/env'
 
 const MANAGED_KEYS = [
   'LLM_API_KEY',

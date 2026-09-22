@@ -31,7 +31,7 @@ import { users } from './users'
 
 /**
  * interview_sessions —— 面试会话
- * 见 docs/DATA_MODEL.md §3.4。状态迁移规则由 lib/services/session-service.ts 强制。
+ * 见 docs/engineering/DATA_MODEL.md §3.4。状态迁移规则由 lib/services/state/session.ts 强制。
  */
 export const interviewSessions = pgTable(
   'interview_sessions',
@@ -46,7 +46,7 @@ export const interviewSessions = pgTable(
 
     status: sessionStatusEnum('status').notNull().default('draft'),
     /**
-     * 编排阶段（微观）。与 status 的区别见 docs/ARCHITECTURE.md §3.6.1。
+     * 编排阶段（微观）。与 status 的区别见 docs/engineering/ARCHITECTURE.md §3.6.1。
      * 面试未开始时为 IDLE；开始后由 orchestration-service 推进。
      */
     phase: orchestrationPhaseEnum('phase').notNull().default('IDLE'),
@@ -83,7 +83,7 @@ export const interviewSessions = pgTable(
 
 /**
  * questions —— 问题（含追问链）
- * 见 docs/DATA_MODEL.md §3.5。
+ * 见 docs/engineering/DATA_MODEL.md §3.5。
  *
  * depth：主问题 0，追问 1，追问的追问 2 —— 上限 2 由 CHECK 约束兜底（AGENTS.md §2 第 7 步）。
  * rootId：指向所属主问题，使「每道主问题最多 2 层追问」可在 SQL 层按组校验。
@@ -116,7 +116,7 @@ export const questions = pgTable(
     /**
      * 考察维度 —— 复用六维枚举（AGENTS.md §6.2），
      * 与 Phase 4 的 evaluations.dimension_scores 天然对齐。
-     * 见 docs/AI_PROMPTS.md §4.2。
+     * 见 docs/engineering/AI_PROMPTS.md §4.2。
      */
     dimension: scoreDimensionEnum('dimension').notNull(),
     /** 期望要点：["...", "..."]（2-5 条），供候选人自查 */
@@ -146,7 +146,7 @@ export const questions = pgTable(
 
 /**
  * answers —— 用户回答
- * 见 docs/DATA_MODEL.md §3.6。user_id 为冗余归属列，用于免 JOIN 权限校验。
+ * 见 docs/engineering/DATA_MODEL.md §3.6。user_id 为冗余归属列，用于免 JOIN 权限校验。
  */
 export const answers = pgTable(
   'answers',
@@ -191,7 +191,7 @@ export type NewAnswer = typeof answers.$inferInsert
 
 /**
  * interview_messages —— 面试对话的**全部消息**
- * 见 docs/ARCHITECTURE.md §3.6.4。
+ * 见 docs/engineering/ARCHITECTURE.md §3.6.4。
  *
  * 与 answers 的分工：
  * - 本表存 AI 与用户的每条消息（提问/追问/提示/系统提示/回答/跳过），用于完整回溯；

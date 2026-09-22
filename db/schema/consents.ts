@@ -5,7 +5,7 @@ import { users } from './users'
 
 /**
  * consents —— 同意记录（AGENTS.md §7 C1/C2）
- * 见 docs/DATA_MODEL.md §3.12。未同意不得创建面试会话。
+ * 见 docs/engineering/DATA_MODEL.md §3.12。未同意不得创建面试会话。
  */
 export const consents = pgTable(
   'consents',

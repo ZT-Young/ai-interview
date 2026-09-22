@@ -5,7 +5,7 @@ import {
   DEFAULT_FREE_TRIAL,
   FREE_TRIAL_UNLOCK_TYPE,
   type EntitlementInput,
-} from '@/lib/services/entitlement-service'
+} from '@/lib/services/handlers/entitlement-service'
 import {
   buildSignaturePayload,
   isPaymentConfigured,

@@ -6,7 +6,7 @@ import { containsProhibited, containsSensitive } from '@/lib/parsing/verify'
 import { envelope } from './parse'
 
 /**
- * 逐题评分与报告的 schema —— docs/AI_PROMPTS.md §6.3 / §7.3 的代码实现。
+ * 逐题评分与报告的 schema —— docs/engineering/AI_PROMPTS.md §6.3 / §7.3 的代码实现。
  */
 
 /* ------------------------------------------------------------------ *

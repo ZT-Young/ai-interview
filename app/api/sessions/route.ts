@@ -1,6 +1,6 @@
 import { apiHandler, created, ok, parseJsonBody, parsePagination } from '@/lib/api/respond'
 import { requireUser } from '@/lib/api/guard'
-import { createSession, listSessions } from '@/lib/services/session-service'
+import { createSession, listSessions } from '@/lib/services/handlers/session-service'
 import { createSessionSchema } from '@/lib/validators/session'
 
 /** GET /api/sessions —— 仅列出当前用户的面试会话（历史记录） */

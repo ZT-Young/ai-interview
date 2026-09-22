@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { apiHandler, created, ok, parseJsonBody, parsePagination } from '@/lib/api/respond'
 import { requireUser } from '@/lib/api/guard'
-import { createResume, listResumes } from '@/lib/services/resume-service'
+import { createResume, listResumes } from '@/lib/services/handlers/resume-service'
 import { createResumeSchema } from '@/lib/validators/resume'
 
 /** GET /api/resumes —— 仅列出当前用户的简历 */

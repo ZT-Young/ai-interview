@@ -1,6 +1,6 @@
 import { apiHandler, created, ok, parseJsonBody, parsePagination } from '@/lib/api/respond'
 import { requireUser } from '@/lib/api/guard'
-import { createJobJd, listJobJds } from '@/lib/services/job-jd-service'
+import { createJobJd, listJobJds } from '@/lib/services/handlers/job-jd-service'
 import { createJobJdSchema } from '@/lib/validators/job-jd'
 
 /** GET /api/job-jds —— 仅列出当前用户的 JD */

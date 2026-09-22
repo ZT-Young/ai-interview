@@ -2,7 +2,7 @@ import { SCHEMA_VERSION } from '../schemas/parse'
 import type { PromptTemplate } from './parse'
 
 /**
- * 追问与提示的 prompt —— docs/AI_PROMPTS.md §5.2 / §5.5 的代码实现。
+ * 追问与提示的 prompt —— docs/engineering/AI_PROMPTS.md §5.2 / §5.5 的代码实现。
  */
 
 export interface FollowUpPromptInput {

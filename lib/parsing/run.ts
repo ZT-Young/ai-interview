@@ -15,7 +15,7 @@ import type { LlmPort } from './llm-port'
 /**
  * 解析编排 —— schema 校验 + 重试 + 空内容检测。
  *
- * 契约见 docs/AI_PROMPTS.md §5.4：
+ * 契约见 docs/engineering/AI_PROMPTS.md §5.4：
  *   第 1 次尝试（temperature 0.7）
  *     ↓ 失败
  *   第 2 次尝试（temperature 0.2）

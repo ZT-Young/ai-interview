@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 /**
  * 面试配置默认值 —— 题目配额依据 AGENTS.md §2 第 5 步的五个环节。
- * 具体数值为工程默认值，产品口径见 docs/PRD.md（待创建）。
+ * 具体数值为工程默认值，产品口径见 docs/product/PRD.md（待创建）。
  */
 export const DEFAULT_SESSION_CONFIG = {
   durationMin: 30,

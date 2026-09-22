@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAdminOrNull } from '@/lib/api/admin-guard'
-import { listAiLogs } from '@/lib/services/admin-service'
+import { listAiLogs } from '@/lib/services/handlers/admin-service'
 
 export const metadata = { title: 'AI 与错误日志' }
 export const dynamic = 'force-dynamic'
@@ -22,7 +22,7 @@ const OPERATION_LABELS: Record<string, string> = {
 }
 
 /**
- * AI 调用日志与错误日志（同一张表，按 `status` 区分，docs/UI.md §8.1）。
+ * AI 调用日志与错误日志（同一张表，按 `status` 区分，docs/design/UI.md §8.1）。
  *
  * 日志**不含**提示词与简历原文（写入侧已由 `sanitizeLogText` 脱敏），
  * 因此后台也无法从日志里还原用户敏感内容。

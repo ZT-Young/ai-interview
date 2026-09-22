@@ -5,10 +5,10 @@ import { useState } from 'react'
 
 import { Alert, Input, Label } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { api, ApiClientError } from '@/lib/api-client'
+import { api, ApiClientError } from '@/lib/http/api-client'
 
 /**
- * 手动调整用户免费次数（敏感操作，docs/UI.md §8.4）。
+ * 手动调整用户免费次数（敏感操作，docs/design/UI.md §8.4）。
  *
  * 必须填写原因 —— 原因会写入审计日志，便于事后追溯「为什么改了这个数」。
  */

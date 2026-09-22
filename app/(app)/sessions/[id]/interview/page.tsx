@@ -1,13 +1,13 @@
 import { InterviewConsole, type Step } from '@/components/features/interview/interview-console'
 import { ApiError } from '@/lib/api/errors'
 import { requirePageUser } from '@/lib/api/guard'
-import { getNextQuestion, listMessages } from '@/lib/services/orchestration-service'
+import { getNextQuestion, listMessages } from '@/lib/services/handlers/orchestration-service'
 
 export const metadata = { title: '面试房间' }
 export const dynamic = 'force-dynamic'
 
 /**
- * 面试房间页（docs/UI.md §4）。
+ * 面试房间页（docs/design/UI.md §4）。
  *
  * 服务端在渲染时恢复进度（`getNextQuestion` + `currentQuestionId`）：
  * - 会话尚未生成计划 → 422，展示引导

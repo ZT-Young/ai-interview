@@ -6,7 +6,7 @@ import { ownedByActive } from '@/lib/api/ownership'
 import { notFound, serviceUnavailable, upstreamError } from '@/lib/api/errors'
 import { requireUser } from '@/lib/api/guard'
 import { apiHandler, ok, parseJsonBody } from '@/lib/api/respond'
-import { evaluateAnswer } from '@/lib/services/evaluation-service'
+import { evaluateAnswer } from '@/lib/services/handlers/evaluation-service'
 
 import {
   evaluateBodySchema,
@@ -21,7 +21,7 @@ import {
  * - 不指定时对**全部已作答但未评分**的题目逐题评分（部分失败会如实回报）
  * - 幂等：已评分的题需 `regenerate: true` 才会重评
  *
- * 分数由服务端按公式计算；证据必须是回答原文子串，否则该条被剔除（见 docs/AI_PROMPTS.md §6.4）。
+ * 分数由服务端按公式计算；证据必须是回答原文子串，否则该条被剔除（见 docs/engineering/AI_PROMPTS.md §6.4）。
  */
 export const POST = apiHandler(async (request: Request, context: SessionRouteContext) => {
   const user = await requireUser()

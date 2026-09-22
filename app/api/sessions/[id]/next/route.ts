@@ -1,6 +1,6 @@
 import { requireUser } from '@/lib/api/guard'
 import { apiHandler, ok } from '@/lib/api/respond'
-import { getNextQuestion } from '@/lib/services/orchestration-service'
+import { getNextQuestion } from '@/lib/services/handlers/orchestration-service'
 
 import type { SessionRouteContext } from '../_shared'
 

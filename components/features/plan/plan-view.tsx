@@ -7,7 +7,7 @@ import { Alert } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { api, ApiClientError } from '@/lib/api-client'
+import { api, ApiClientError } from '@/lib/http/api-client'
 import {
   QUESTION_SOURCE_LABELS,
   QUESTION_TYPE_LABELS,

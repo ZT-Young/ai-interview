@@ -6,10 +6,10 @@ import { useState } from 'react'
 import { Alert, Input, Label } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { api, ApiClientError } from '@/lib/api-client'
+import { api, ApiClientError } from '@/lib/http/api-client'
 
 /**
- * 兑换码兑换表单（V1 的支付替代方案，docs/UI.md §6）。
+ * 兑换码兑换表单（V1 的支付替代方案，docs/design/UI.md §6）。
  *
  * 安全：表单**只提交兑换码**；金额与权益由服务端按商品目录决定，
  * 前端不参与定价，也不传递任何权益字段。

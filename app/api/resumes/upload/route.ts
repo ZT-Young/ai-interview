@@ -5,7 +5,7 @@ import {
   isUploadError,
   readUploadedFile,
   uploadAndParse,
-} from '@/lib/services/upload-service'
+} from '@/lib/services/handlers/upload-service'
 
 /**
  * POST /api/resumes/upload —— 上传简历（PDF / Word / 图片）并立即解析。

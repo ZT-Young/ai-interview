@@ -8,9 +8,9 @@ import { Alert } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { api, ApiClientError } from '@/lib/api-client'
+import { api, ApiClientError } from '@/lib/http/api-client'
 import { QUESTION_SOURCE_LABELS, SCORE_DIMENSION_LABELS } from '@/lib/constants/questions'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/index'
 
 import { ConnectionBanner, useOnlineStatus } from './connection-banner'
 import { MessageBubble } from './message-bubble'
@@ -49,7 +49,7 @@ export interface Step {
 type TranscriptItem = StepMessage & { followUpReason?: string | null }
 
 /**
- * 面试房间主容器（docs/UI.md §4）。
+ * 面试房间主容器（docs/design/UI.md §4）。
  *
  * 编排由服务端状态机驱动：本组件只展示「当前唯一一道题」并提交动作，
  * **不自行决定是否追问**（层数上限由服务端强制）。

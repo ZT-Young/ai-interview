@@ -7,7 +7,7 @@ import {
   isTerminal,
   SESSION_STATUSES,
   type SessionStatus,
-} from '@/lib/services/session-state'
+} from '@/lib/services/state/session'
 
 describe('面试会话状态机', () => {
   it('合法迁移被允许', () => {

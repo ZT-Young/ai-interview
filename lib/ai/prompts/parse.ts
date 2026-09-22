@@ -1,5 +1,5 @@
 /**
- * Prompt 模板 —— docs/AI_PROMPTS.md 的代码实现。
+ * Prompt 模板 —— docs/engineering/AI_PROMPTS.md 的代码实现。
  *
  * 所有 prompt 集中在 lib/ai（AGENTS.md §4：复杂 AI 逻辑只放 lib/ai），
  * 禁止在组件或路由里内联 prompt 文本。
@@ -26,7 +26,7 @@ export interface PromptTemplate {
   user: string
 }
 
-/** 1. JD 解析（docs/AI_PROMPTS.md §1.1） */
+/** 1. JD 解析（docs/engineering/AI_PROMPTS.md §1.1） */
 export function buildJdParsePrompt(input: { text: string; fromImage: boolean }): PromptTemplate {
   const dataSchema = `{
   "title": "string, 岗位名称，最多 200 字",
@@ -56,7 +56,7 @@ ${dataSchema}`,
   }
 }
 
-/** 2. 简历解析（docs/AI_PROMPTS.md §2.1） */
+/** 2. 简历解析（docs/engineering/AI_PROMPTS.md §2.1） */
 export function buildResumeParsePrompt(input: {
   text: string
   fromImage: boolean
@@ -104,7 +104,7 @@ ${dataSchema}`,
   }
 }
 
-/** 3. 匹配分析（docs/AI_PROMPTS.md §3.1） */
+/** 3. 匹配分析（docs/engineering/AI_PROMPTS.md §3.1） */
 export function buildMatchPrompt(input: { jdJson: string; resumeJson: string }): PromptTemplate {
   const dataSchema = `{
   "match_score": "integer 0-100，简历与 JD 要求的匹配程度",

@@ -1,6 +1,6 @@
 import { requireUser } from '@/lib/api/guard'
 import { apiHandler, ok, parseJsonBody } from '@/lib/api/respond'
-import { submitAnswer } from '@/lib/services/orchestration-service'
+import { submitAnswer } from '@/lib/services/handlers/orchestration-service'
 
 import {
   resolveOrchestrationPorts,

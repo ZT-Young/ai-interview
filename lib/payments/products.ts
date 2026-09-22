@@ -1,4 +1,4 @@
-import type { MembershipLevel } from '@/lib/services/membership-service'
+import type { MembershipLevel } from '@/lib/services/handlers/membership-service'
 
 /**
  * 商品目录 —— **服务端定价与权益的单一真源**。

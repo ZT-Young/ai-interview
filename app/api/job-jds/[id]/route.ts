@@ -1,6 +1,6 @@
 import { apiHandler, ok, parseJsonBody } from '@/lib/api/respond'
 import { requireUser } from '@/lib/api/guard'
-import { deleteJobJd, getJobJd, updateJobJd } from '@/lib/services/job-jd-service'
+import { deleteJobJd, getJobJd, updateJobJd } from '@/lib/services/handlers/job-jd-service'
 import { updateJobJdSchema } from '@/lib/validators/job-jd'
 
 interface RouteContext {

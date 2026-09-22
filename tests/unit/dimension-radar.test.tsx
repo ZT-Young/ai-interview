@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest'
 import { DimensionRadar } from '@/components/features/report/dimension-radar'
 
 /**
- * 雷达图组件测试（docs/UI.md §5.3）。
+ * 雷达图组件测试（docs/design/UI.md §5.3）。
  *
  * 该组件是自绘 SVG，含极坐标计算、数值钳制与空态，属**纯逻辑**，
  * 因此可在此完整验证 —— E2E 需要数据库，覆盖不到未登录状态下的图表正确性。

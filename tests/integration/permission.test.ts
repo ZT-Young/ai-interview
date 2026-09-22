@@ -7,14 +7,14 @@ import {
   getResume,
   listResumes,
   updateResume,
-} from '@/lib/services/resume-service'
+} from '@/lib/services/handlers/resume-service'
 import {
   createJobJd,
   deleteJobJd,
   getJobJd,
   listJobJds,
   updateJobJd,
-} from '@/lib/services/job-jd-service'
+} from '@/lib/services/handlers/job-jd-service'
 import {
   createSession,
   deleteSession,
@@ -22,7 +22,7 @@ import {
   listSessions,
   transitionSession,
   updateSession,
-} from '@/lib/services/session-service'
+} from '@/lib/services/handlers/session-service'
 
 import {
   createTestUser,
