@@ -13,8 +13,11 @@ import {
 } from '@/db/schema'
 import { internalError, notFound, validationError } from '@/lib/api/errors'
 import { ownedByActive } from '@/lib/api/ownership'
-import { buildFollowUpPrompt, buildHintPrompt } from '@/lib/ai/prompts/interview'
-import { hintParseSchema, followUpParseSchema, normalizeFollowUp } from '@/lib/ai/schemas/interview'
+import { runInterviewAgent, type AgentContext } from '@/lib/ai/agent/loop'
+import type { ToolResult } from '@/lib/ai/agent/tools'
+/** 追问决策已改为 Agent 链路（buildFollowUpPrompt 仍被评测脚本用作对照基线） */
+import { buildHintPrompt } from '@/lib/ai/prompts/interview'
+import { hintParseSchema, normalizeFollowUp } from '@/lib/ai/schemas/interview'
 import { MAX_QUESTION_DEPTH } from '@/db/schema/enums'
 import { parseError } from '@/lib/parsing/errors'
 import type { LlmPort } from '@/lib/parsing/llm-port'
@@ -178,6 +181,72 @@ async function logMessage(input: {
   const row = rows[0]
   if (!row) throw internalError('消息写入失败')
   return row
+}
+
+/**
+ * 组装 Agent 可用的检索上下文。
+ *
+ * 与旧 `buildContext()`（拼一份固定摘要）的区别：**这里给的是原材料**，
+ * 由 Agent 自己决定检索什么（简历 / JD / 历史问答 / 已问题目），
+ * 服务端只负责把数据取出来并保证不越界（只取本会话、按 rootId 限定范围）。
+ */
+async function buildAgentContext(input: {
+  session: typeof interviewSessions.$inferSelect
+  rootId: string
+  question: Question
+  answer: string
+}): Promise<AgentContext> {
+  const db = getDb()
+  const { session, rootId, question, answer } = input
+
+  let resume: unknown = null
+  if (session.resumeId) {
+    const rows = await db.select().from(resumes).where(eq(resumes.id, session.resumeId)).limit(1)
+    resume = rows[0]?.parsedData ?? null
+  }
+
+  let jd: unknown = null
+  if (session.jobJdId) {
+    const rows = await db.select().from(jobJds).where(eq(jobJds.id, session.jobJdId)).limit(1)
+    jd = rows[0]?.parsedData ?? null
+  }
+
+  // 当前主问题链上的问答（含本次），供 recent_answers 检索
+  const chainRows = await db
+    .select({ question: questions, answer: answers })
+    .from(questions)
+    .leftJoin(answers, eq(answers.questionId, questions.id))
+    .where(and(eq(questions.sessionId, session.id), eq(questions.rootId, rootId)))
+    .orderBy(asc(questions.depth))
+
+  const history = chainRows.map((row) => ({
+    question: row.question.content,
+    answer: row.answer?.content ?? '',
+    depth: row.question.depth,
+  }))
+
+  // 本次回答尚未落库时补上（链里只有已落库的行）
+  if (history.length === 0 || history[history.length - 1].question !== question.content) {
+    history.push({ question: question.content, answer, depth: question.depth })
+  }
+
+  const askedRows = await db
+    .select({ content: questions.content })
+    .from(questions)
+    .where(eq(questions.sessionId, session.id))
+    .orderBy(asc(questions.orderIndex))
+
+  const mainQuestion =
+    question.depth === 0 ? question.content : (chainRows.find((row) => row.question.depth === 0)?.question.content ?? question.content)
+
+  return {
+    resume,
+    jd,
+    mainQuestion,
+    currentAnswer: answer,
+    history,
+    askedQuestions: askedRows.map((row) => row.content),
+  }
 }
 
 /** 组装追问所需的上下文（JD 要求 + 简历要点） */
@@ -537,30 +606,40 @@ async function decideFollowUp(input: {
     })
   }
 
-  const context = await buildContext(input.session)
-  const prompt = buildFollowUpPrompt({
-    question: question.content,
+  /**
+   * Agent 决策：模型可先检索（简历 / JD / 历史问答 / 已问题目）再决定追问与否。
+   *
+   * 护栏全部保留且与 Agent 解耦，模型**无法绕过**：
+   * - 层数上限 `MAX_QUESTION_DEPTH`（上面 canFollowUp 已判定）
+   * - 最终决策仍过 `normalizeFollowUp()`：空内容降级、敏感词/禁止项降级
+   * - Agent 失败或超出轮数 → 退回下一题，不阻塞用户
+   */
+  const agentContext = await buildAgentContext({
+    session: input.session,
+    rootId,
+    question,
     answer,
-    context,
+  })
+
+  const agent = await runInterviewAgent({
+    llm: ports.llm,
+    context: agentContext,
     depth: currentDepth,
   })
 
-  const outcome = await parseWithRetry({
-    llm: ports.llm,
-    operation: 'follow_up',
-    system: prompt.system,
-    user: prompt.user,
-    schema: followUpParseSchema,
-  })
-
-  // 模型不可用 / 输出不合规 → 退回下一题，不阻塞用户
-  if (!outcome.ok) {
+  // Agent 不可用 / 未在轮数内收敛 → 退回下一题，不阻塞用户
+  if (!agent.ok) {
     await persistPhase(sessionId, userId, 'NEXT_QUESTION', { currentQuestionId: null })
     const step = await nextStep(userId, sessionId)
     return { ...step, recorded: null }
   }
 
-  const normalized = normalizeFollowUp(outcome.data.data)
+  const normalized = normalizeFollowUp({
+    action: agent.decision.action,
+    follow_up: agent.decision.followUp,
+    reason: agent.decision.reason,
+    focus: agent.decision.focus,
+  })
 
   if (normalized.action !== 'follow_up' || normalized.followUp.length === 0) {
     await persistPhase(sessionId, userId, 'NEXT_QUESTION', { currentQuestionId: null })
@@ -577,6 +656,7 @@ async function decideFollowUp(input: {
     reason: normalized.reason,
     focus: normalized.focus,
     depth: currentDepth + 1,
+    toolTrace: agent.toolTrace,
   })
 }
 
@@ -590,6 +670,8 @@ async function emitFollowUp(input: {
   reason: string
   focus: string
   depth: number
+  /** Agent 的工具调用轨迹（可审计：这次追问依据了哪些检索） */
+  toolTrace?: ToolResult[]
 }): Promise<SubmitResult> {
   const db = getDb()
 
@@ -626,7 +708,18 @@ async function emitFollowUp(input: {
     content: input.content,
     followUpReason: input.reason,
     focus: input.focus,
-    metadata: { depth: input.depth },
+    metadata: {
+      depth: input.depth,
+      ...(input.toolTrace && input.toolTrace.length > 0
+        ? {
+            toolTrace: input.toolTrace.map((item) => ({
+              name: item.name,
+              argument: item.argument,
+              ok: item.ok,
+            })),
+          }
+        : {}),
+    },
   })
 
   await persistPhase(input.sessionId, input.userId, 'WAITING_ANSWER', {

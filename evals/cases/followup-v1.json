@@ -1,0 +1,115 @@
+{
+  "version": "1",
+  "source": "docs/samples/简历_v1_AI测试开发工程师.md（已去除联系方式）",
+  "note": "追问决策评测。期望值是**决策方向**（追问 / 下一题），不是具体措辞 —— 措辞无法自动判定，方向可以。所有回答都 >30 字符，避免触发服务端的「回答过短」确定性短路（那条路径不调用模型，不属于本评测范围）。 其中 f5/f6 是「必须查简历才能问好」的用例：候选人答得模糊或记错细节，好的追问要能指向简历里真实存在的项目细节（而不是泛泛追问或编造）。这两条才是检验工具检索有没有价值的关键。",
+  "jdJson": {
+    "title": "AI 测试开发工程师",
+    "must_have": [
+      "熟悉测试理论与用例设计方法（等价类、边界值、场景法）",
+      "有 LLM / Agent 应用测试经验，理解幻觉与输出一致性问题"
+    ],
+    "responsibilities": [
+      "设计并执行 Prompt 鲁棒性、幻觉、多轮对话、工具调用等专项测试"
+    ]
+  },
+  "resumeJson": {
+    "name": "候选人 A",
+    "skills": [
+      "等价类与边界值用例设计",
+      "LLM 幻觉检测",
+      "JMeter 并发压测",
+      "Selenium 自动化"
+    ],
+    "projects": [
+      {
+        "name": "AI 智能客服电商平台",
+        "highlights": [
+          "设计 80+ 测试用例",
+          "回归脚本缩减率 45%",
+          "JMeter 200 并发，接口平均响应 <1s"
+        ]
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": "f1-vague-should-probe",
+      "question": "说说你为 AI 智能客服设计的测试用例，印象最深的是哪一类？",
+      "answer": "我主要负责 Agent 对话链路的测试，设计了 80 多个用例，覆盖幻觉、多轮对话、工具调用这些场景，发现问题之后会整理成清单反馈给开发同学去修复。",
+      "expectedAction": "follow_up",
+      "expectedReasons": [
+        "vague",
+        "too_short"
+      ],
+      "why": "有数量但没有具体做法与判定标准，应该追问细节"
+    },
+    {
+      "id": "f2-good-should-move-on",
+      "question": "说说你为 AI 智能客服设计的测试用例，印象最深的是哪一类？",
+      "answer": "印象最深的是工具调用异常。我按场景法拆出正常、超时、返回空、字段缺失四条路径，再用边界值把超时阈值从 1 秒到 5 秒分档。发现接口超时超过 3 秒时，Agent 会把超时当成「用户没下过单」直接回复，属于事实性幻觉。我推动业务侧加了降级文案和重试，回归脚本用 Selenium 串起来之后，回归时间缩短了 45%。",
+      "expectedAction": "next_question",
+      "expectedReasons": [
+        "good_enough"
+      ],
+      "why": "背景、做法、发现、量化结果齐全，没有明显缺口，应该进入下一题"
+    },
+    {
+      "id": "f3-off-topic-should-pull-back",
+      "question": "说说你为 AI 智能客服设计的测试用例，印象最深的是哪一类？",
+      "answer": "我平时比较喜欢健身和摄影，周末会去爬山。我觉得兴趣爱好能让人保持精力，对工作效率也有帮助，所以面试官可能会关心这个方面吧。",
+      "expectedAction": "follow_up",
+      "expectedReasons": [
+        "off_topic",
+        "vague"
+      ],
+      "why": "完全偏离岗位要求，必须追问并把话题拉回测试/LLM 方向"
+    },
+    {
+      "id": "f4-partial-should-probe",
+      "question": "大模型应用常见的幻觉问题，你会怎么设计测试来发现它？",
+      "answer": "我会先看模型有没有乱说，比如问一些知识库里有的内容，看它答得对不对。线上出问题的话我会先看日志，复现一下，然后反馈给开发去修。",
+      "expectedAction": "follow_up",
+      "expectedReasons": [
+        "vague",
+        "too_short"
+      ],
+      "why": "有方向但没有判定方法和排查顺序，应该追问具体怎么做"
+    },
+    {
+      "id": "f5-needs-resume-grounding",
+      "question": "挑一个你做过的项目讲讲，你负责哪部分、结果怎么样？",
+      "answer": "我做过一个电商相关的项目，主要是做测试的部分，写了不少用例，也做过一些自动化，效果还行，最后也优化了体验。",
+      "expectedAction": "follow_up",
+      "expectedReasons": [
+        "vague",
+        "too_short"
+      ],
+      "groundingKeywords": [
+        "AI 智能客服",
+        "80+",
+        "45%",
+        "JMeter",
+        "Selenium",
+        "200 并发"
+      ],
+      "why": "回答完全没有具体信息。好的追问应指向简历里真实存在的项目与量化结果，而不是泛泛地「再多说一点」"
+    },
+    {
+      "id": "f6-misremembered-detail",
+      "question": "你在简历里提到回归脚本缩减率 45%，这个数字是怎么算出来的？",
+      "answer": "大概是看执行时间吧，我印象里是减少了百分之三十左右，具体口径我记不太清了，但确实用了自动化工具。",
+      "expectedAction": "follow_up",
+      "expectedReasons": [
+        "vague",
+        "too_short"
+      ],
+      "groundingKeywords": [
+        "45%",
+        "AI 智能客服",
+        "Selenium",
+        "80+"
+      ],
+      "why": "候选人把 45% 记成 30%，追问必须基于简历真实数据纠正或让其澄清，不能顺着错误数字问"
+    }
+  ]
+}

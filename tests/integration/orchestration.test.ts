@@ -64,15 +64,27 @@ function planQuestions(): PlanQuestion[] {
  */
 const planEnvelope = () => ({ schema_version: '1.0', data: { questions: planQuestions() } })
 
-/** 让模型总是要求追问 */
+/**
+ * 让模型总是要求追问。
+ *
+ * ⚠️ 追问决策已改为 Agent 链路：fake 必须返回 **agent step** 结构
+ * （thought + tool_calls + final），直接给旧的 decision 结构会被 schema 拒绝，
+ * 表现为「模型不可用 → 推进到下一题」，用例静默失败。
+ * 这里让 Agent 不调用工具直接决策，覆盖「无需检索」的路径；
+ * 「先检索再决策」的路径由 tests/unit/interview-agent.test.ts 覆盖。
+ */
 const followUpLlm = (question = '你提到做过优化，具体怎么做的？') =>
   FakeLlm.always({
     schema_version: '1.0',
     data: {
-      action: 'follow_up',
-      follow_up: question,
-      reason: 'vague',
-      focus: '做过优化',
+      thought: '回答笼统，追问具体做法',
+      tool_calls: [],
+      final: {
+        action: 'follow_up',
+        follow_up: question,
+        reason: 'vague',
+        focus: '做过优化',
+      },
     },
   })
 
@@ -80,7 +92,11 @@ const followUpLlm = (question = '你提到做过优化，具体怎么做的？')
 const nextQuestionLlm = () =>
   FakeLlm.always({
     schema_version: '1.0',
-    data: { action: 'next_question', follow_up: null, reason: 'good_enough', focus: '' },
+    data: {
+      thought: '回答已经充分，进入下一题',
+      tool_calls: [],
+      final: { action: 'next_question', follow_up: null, reason: 'good_enough', focus: '' },
+    },
   })
 
 /** 建一个「计划已生成」的会话 */
@@ -375,10 +391,14 @@ describe.skipIf(!hasTestDatabase())(
         const llm = FakeLlm.always({
           schema_version: '1.0',
           data: {
-            action: 'follow_up',
-            follow_up: '我们回到岗位要求：你在 PostgreSQL 上的实践经验是怎样的？',
-            reason: 'off_topic',
-            focus: '聊到了无关的内容',
+            thought: '回答偏离岗位要求，把话题拉回',
+            tool_calls: [],
+            final: {
+              action: 'follow_up',
+              follow_up: '我们回到岗位要求：你在 PostgreSQL 上的实践经验是怎样的？',
+              reason: 'off_topic',
+              focus: '聊到了无关的内容',
+            },
           },
         })
 
