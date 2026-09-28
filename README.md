@@ -971,6 +971,16 @@ ADMIN_VIEW_RESUME_CONTENT="true"   # 必须严格为 "true"，不接受 1/TRUE
     （`CONNECT_TIMEOUT`，`/api/health` 恒为 degraded）。
     此时需**终止所有 postgres 进程**再重新 `pnpm dev:all`，
     数据目录 `.local-pg/` 不会丢。
+29. **`local-pg` 曾把「实例已在运行」当成失败（已修复）**：端口被占用时
+    `pg.start()` 会让 postgres 打一行 `FATAL: lock file "postmaster.pid" already exists`
+    再抛一个没有 message 的错误，表现为 `失败：undefined`，排查时完全看不出原因。
+    而「已经在跑」其实是**正常态**（上次 dev 起过）。
+    修法是启动前用 TCP 探测端口：已监听则复用，且**不在结束时关掉别人的实例**。
+30. **`audit-public` 在 git 忙时会崩（已修复）**：该脚本用 `execFileSync('git', …)`
+    枚举已跟踪文件，无 try/catch。git 正忙（另一进程持锁，Windows 常见）时抛 `EBUSY`，
+    脚本直接崩在一堆栈上，看不出是「仓库有问题」还是「恰好有个 git 在跑」。
+    修法是重试 3 次并退避，仍失败则明确打印「审计**未执行**」及原因再退出——
+    CI 需要区分「发现违规」与「审计没跑起来」，两者处理方式完全不同。
 
 ---
 

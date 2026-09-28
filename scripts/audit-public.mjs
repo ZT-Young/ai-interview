@@ -15,9 +15,53 @@
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 
-const tracked = execFileSync('git', ['-c', 'core.quotepath=false', 'ls-files'], {
-  encoding: 'utf8',
-})
+/** 同步休眠（本脚本整体是同步的，不能用 await） */
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
+}
+
+/**
+ * 枚举已跟踪文件。
+ *
+ * 为什么要重试：`execFileSync('git', ...)` 在 git 正忙（另一个 git 进程持有锁、
+ * Windows 上尤其常见）时会抛 `EBUSY`，此前没有捕获，脚本直接崩在一堆栈上，
+ * 看不出是「仓库有问题」还是「恰好有个 git 在跑」。
+ *
+ * 重试三次并退避，仍失败则给出可读结论再退出 —— CI 需要区分
+ * 「发现违规」与「审计没能跑起来」，这两件事的处理方式完全不同。
+ */
+function gitTrackedFiles() {
+  const attempts = 3
+  let lastError
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return execFileSync('git', ['-c', 'core.quotepath=false', 'ls-files'], {
+        encoding: 'utf8',
+        timeout: 30_000,
+      })
+    } catch (error) {
+      lastError = error
+      if (attempt < attempts) {
+        console.warn(
+          `[audit-public] 读取 git 文件列表失败（${error.code ?? error.message}），` +
+            `${attempt}/${attempts} 次，重试中…`,
+        )
+        sleepSync(300 * attempt)
+      }
+    }
+  }
+
+  console.error(
+    '\n[audit-public] 无法枚举已跟踪文件，审计**未执行**。\n' +
+      `原因：${lastError?.code ?? lastError?.message ?? '未知'}\n` +
+      '这通常意味着 git 不可用或正忙（另一个 git 进程持有锁），而不是代码有问题。\n' +
+      '请在 git 空闲后重跑；若持续失败，请检查仓库状态。\n',
+  )
+  process.exit(1)
+}
+
+const tracked = gitTrackedFiles()
   .split('\n')
   .map((line) => line.trim())
   .filter(Boolean)
