@@ -63,7 +63,8 @@ C 端求职者粘贴目标岗位 JD、上传个人简历，AI 扮演面试官进
 - Web PC + H5（响应式，移动端可用）
 - 文字面试为主，支持语音输入转文字（ASR）
 - AI 出题、追问、评分、报告
-- 用户系统、免费次数、支付解锁
+- 用户系统、**免费模式**（`FREE_MODE`，默认开启：全功能无条件免费；见 §3.3）
+- 支付链路代码保留但**门禁关闭**（订单/回调/兑换码逻辑不动，恢复收费只改环境变量）
 - 管理后台最小版：查看用户、面试、报告、订单
 
 ### 3.2 V1 明确不做（Out of Scope）
@@ -76,6 +77,21 @@ C 端求职者粘贴目标岗位 JD、上传个人简历，AI 扮演面试官进
 - ❌ 多人面试
 - ❌ 复杂防作弊
 - ❌ 小程序
+
+### 3.3 免费模式（当前默认）
+
+产品决策：**V1 全功能免费**。实现方式是「保留代码、关闭门禁」，不是删除支付模块。
+
+- 判定集中在两处：`computeEntitlements()` 与 `hasReportUnlock()`
+  （`lib/services/handlers/entitlement-service.ts`），免费额度消耗在
+  `consumeFreeTrial()`（`lib/services/handlers/payment-service.ts`）。
+  **新增任何门禁都必须经过这两处，不得在组件或 Route Handler 里另行判断会员等级。**
+- 开关读取只允许通过 `lib/config/free-mode.ts` 的 `isFreeMode()`，禁止别处读
+  `process.env.FREE_MODE`；关闭方式严格匹配字符串 `"false"`。
+- 免费模式下 `/membership`、`/orders` 重定向到 `/sessions`，导航隐藏会员入口与剩余次数。
+- 恢复收费只需部署时设 `FREE_MODE=false`，**不得为此删除或改写支付代码**。
+- 测试默认运行在付费模式（`tests/setup.ts` 置 `FREE_MODE=false`），
+  免费模式由 `tests/unit/free-mode.test.ts` 单独覆盖；两条路径都必须保持可测。
 
 ---
 
@@ -150,6 +166,21 @@ C 端求职者粘贴目标岗位 JD、上传个人简历，AI 扮演面试官进
 - N1–N7 每一条都应能在代码中找到明确落点；新增/修改 AI 行为时同步更新本节与对应测试。
 - LLM 输出必须做**结构化校验**（schema 校验失败要重试或降级），不信任自由文本直出。
 
+### 6.4 面试官 Agent 的额外约束
+
+追问决策走 Agent 链路（可先检索再决策，契约见 `docs/engineering/AI_PROMPTS.md` §5.6）。
+在 N1–N7 之外，Agent 还必须满足：
+
+- **A1 工具白名单**：只能调用 `search_resume` / `search_jd` / `recent_answers` /
+  `asked_questions`，由 schema `enum` 强制，未知工具在校验层即被拒。
+- **A2 轮数上限**：最多 3 轮（`MAX_AGENT_ROUNDS`），超轮未收敛按失败处理并降级为下一题。
+- **A3 护栏与 Agent 解耦**：追问层数、短回答短路、敏感词降级**全部在服务端**，
+  不得依赖模型自觉，模型输出无权绕过。
+- **A4 可审计**：工具调用轨迹写入 `interview_messages.metadata.toolTrace`
+  （只记工具名/参数/成败，不记简历原文），必须能回答「它为什么追问这个」。
+- **A5 改动必须带对比数字**：调整 Agent 行为后跑 `pnpm eval:agent`，
+  把准确率与时延变化写进 `docs/engineering/AI_QUALITY_BASELINE.md` §3.5。
+
 ---
 
 ## 7. 合规红线
@@ -192,7 +223,9 @@ C 端求职者粘贴目标岗位 JD、上传个人简历，AI 扮演面试官进
 ### 9.2 待澄清事项（未定，禁止自行选型）
 
 - [x] 鉴权：**已定为自建**（邮箱+密码 scrypt + 数据库会话 + HttpOnly Cookie），见 §4
+- [x] 商业模式：**已定为 V1 全功能免费**（`FREE_MODE` 默认开启，支付代码保留、门禁关闭），见 §3.3
 - [ ] 支付渠道与解锁模型（单次解锁 / 会员 / 次数包）的具体组合
+      —— **仅在决定恢复收费时才需要定**；当前免费模式下不阻塞开发
 - [ ] ASR 供应商（Whisper 或国内 ASR）与降级策略
 - [ ] 免费次数规则（新用户额度、是否每日重置）
 
@@ -220,7 +253,15 @@ pnpm test        # Vitest（单元 + 集成；集成缺少 DATABASE_URL 时显�
 pnpm build       # Next.js 生产构建
 pnpm e2e         # Playwright（需先启动 pnpm dev）
 pnpm db:migrate  # Drizzle 迁移
+pnpm ai:quality  # AI 调用质量看板（读 ai_call_logs：成功率 / 时延 / token 成本）
+pnpm eval:scoring  # 评分器评测（真实调模型，见 evals/README.md）
+pnpm eval:agent    # 追问决策评测：旧单次调用 vs Agent 的对比
 ```
+
+**AI 改动必须留下数字**（基线见 docs/engineering/AI_QUALITY_BASELINE.md）：
+改 prompt、换模型、改评分 schema 之后，都要重跑 `pnpm eval:scoring`，
+并把新数字连同变化原因写回基线文件。只说"改好了"不算完成 ——
+没有前后对比，就无法判断这次改动是变好还是变差。
 
 **集成测试约定**：缺少 `DATABASE_URL` / `AUTH_SECRET` 时**显式跳过**，
 不得用假断言伪装通过；交付时必须说明跳过了多少条。

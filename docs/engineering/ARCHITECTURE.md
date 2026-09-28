@@ -84,7 +84,8 @@ ai-interview/
 │   │   ├── client.ts                 # OpenAI 兼容 /chat/completions（含视觉图片直读）
 │   │   ├── errors.ts                 # AiError 分类（含额度不足/超时/限流）
 │   │   ├── logger.ts                 # AI 调用日志（落 ai_call_logs）
-│   │   ├── prompts/                  # parse · plan · interview · evaluation
+│   │   ├── agent/                    # 面试官 Agent：tools(纯函数检索) + loop(思考→检索→决策)
+│   │   ├── prompts/                  # parse · plan · interview · interview-agent · evaluation
 │   │   ├── schemas/                  # 与 prompts 一一对应的 zod schema（strict）
 │   │   ├── scoring.ts                # 分数换算公式（真源是 DATA_MODEL §5）
 │   │   └── types.ts
@@ -103,6 +104,7 @@ ai-interview/
 │   ├── api/                          # 服务端共用：errors · respond · guard · ownership · admin-guard
 │   ├── http/api-client.ts            # 浏览器端 fetch 封装（仅 'use client' 使用）
 │   ├── config/env.ts                 # 环境变量读取与校验
+│   ├── config/free-mode.ts           # 免费模式开关（isFreeMode）
 │   ├── utils/index.ts                # 无业务语义的小工具（cn 等）
 │   ├── validators/                   # 用户请求体的 zod 契约
 │   ├── observability/                # logger · error-monitor · rate-limit
@@ -193,6 +195,10 @@ status → completed
 
 ### 3.4 支付解锁（Phase 5）
 
+> **当前处于免费模式（`FREE_MODE` 默认开启）：下面这条链路的「门禁」整体关闭。**
+> 权益不再依赖订单 —— `computeEntitlements()` 全量放行、`hasReportUnlock()` 恒为 `true`。
+> 订单/回调/兑换码代码保留不动，恢复收费只需部署时设 `FREE_MODE=false`。
+
 ```
 创建订单 → payments(status=pending) → 跳转渠道（TBD）
 渠道回调 → 验签 → UPDATE payments SET status='paid', paid_at=now()
@@ -216,6 +222,11 @@ status → completed
 
 面试过程由**服务端状态机**驱动，前端只负责展示与提交。实现：
 `lib/services/orchestration-state.ts`（纯函数，可单测）+ `orchestration-service.ts`（编排与落库）。
+
+**追问决策已 Agent 化**：`FOLLOW_UP` 阶段不再是「拼上下文 → 单次调用 → 出决策」，
+而是由 `lib/ai/agent/loop.ts` 驱动「思考 → 检索（简历/JD/历史/已问题目）→ 观察 → 再决策」，
+最多 3 轮。护栏（追问层数、短回答短路、敏感词降级）全部保留在服务端，与 Agent 解耦。
+契约见 `AI_PROMPTS.md` §5.6，效果对比见 `AI_QUALITY_BASELINE.md` §3.5。
 
 #### 3.6.1 两个状态维度（不可混淆）
 
@@ -319,9 +330,19 @@ IDLE ──► PARSING ──► READY ──► ASKING ──► WAITING_ANSWER
 | `S3_SECRET_KEY` | storage | Phase 2 起 | — |
 | `S3_BUCKET` | storage | Phase 2 起 | — |
 | `S3_REGION` | storage | 可选 | 默认 `auto` |
+| `FREE_MODE` | — | 可选 | **免费模式开关**，默认开启；严格 `"false"` 才恢复付费门禁。见 `lib/config/free-mode.ts` 与 AGENTS.md §3.3 |
+| `PAYMENT_WEBHOOK_SECRET` | — | 仅恢复收费时需要 | 支付回调验签密钥；免费模式下不阻塞任何功能 |
 | `E2E_BASE_URL` | — | 可选 | Playwright 目标地址，默认 `http://127.0.0.1:3000` |
 
 **禁止**：把密钥写入 `NEXT_PUBLIC_*`（会打进前端 bundle）。
+
+**免费模式下的门禁落点**（改动权益逻辑时只认这三处）：
+
+| 函数 | 文件 | 免费模式行为 |
+|---|---|---|
+| `computeEntitlements()` | `lib/services/handlers/entitlement-service.ts` | 一律返回无限次数 + 详细报告 + 语音 |
+| `hasReportUnlock()` | 同上 | 恒为 `true` |
+| `consumeFreeTrial()` | `lib/services/handlers/payment-service.ts` | 不扣免费额度（按会员处理） |
 
 ---
 

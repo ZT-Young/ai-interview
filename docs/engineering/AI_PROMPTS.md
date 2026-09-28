@@ -591,6 +591,105 @@ reason 取值：
 
 ---
 
+## 5.6 面试官 Agent（追问决策，当前实现）
+
+> **本节描述的链路已取代 §5.2–§5.4 的单次调用实现。**
+> 旧 prompt（`buildFollowUpPrompt`）保留在代码中，仅作为评测对照基线使用
+> （`pnpm eval:agent` 的 legacy 策略），生产链路不再走它。
+
+### 5.6.1 为什么改成 Agent
+
+旧链路是「拼一份固定上下文 → 单次调用 → 直接出决策」：
+模型只能看到服务端替它选好的那点信息，想确认简历细节也无从下手，
+于是追问容易停留在「再多说一点」这种泛泛句式。
+
+新链路把**看什么**的决定权交给模型：它可以先用工具检索简历 / JD / 历史问答，
+再决定追问还是进入下一题。
+
+### 5.6.2 工具白名单
+
+| 工具 | 作用 | 参数 |
+|---|---|---|
+| `search_resume` | 按关键词检索候选人简历中的真实经历、技能、项目 | 关键词 |
+| `search_jd` | 按关键词检索岗位硬性要求与职责 | 关键词 |
+| `recent_answers` | 查看当前这道题此前的问答 | 无 |
+| `asked_questions` | 查看本场已问过的题目，避免重复 | 无 |
+
+工具是**纯函数检索**（`lib/ai/agent/tools.ts`），不写库、不联网。
+执行失败不抛异常，而是把失败原因作为观察结果回灌，让模型自己纠正。
+
+### 5.6.3 循环契约
+
+每轮模型输出**二选一**（schema 层强制互斥）：
+
+- `tool_calls`（最多 2 个）+ `final: null` → 服务端执行工具，结果回灌，进入下一轮
+- `final`（决策）+ `tool_calls: []` → 收敛
+
+```json
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "data"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["thought", "tool_calls", "final"],
+      "properties": {
+        "thought": { "type": "string", "maxLength": 300 },
+        "tool_calls": {
+          "type": "array",
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "argument"],
+            "properties": {
+              "name": { "enum": ["search_resume", "search_jd", "recent_answers", "asked_questions"] },
+              "argument": { "type": "string", "maxLength": 100 }
+            }
+          }
+        },
+        "final": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["action", "follow_up", "reason", "focus"],
+          "properties": {
+            "action": { "enum": ["follow_up", "next_question"] },
+            "follow_up": { "type": ["string", "null"], "maxLength": 300 },
+            "reason": { "enum": ["vague", "too_short", "off_topic", "good_enough"] },
+            "focus": { "type": ["string", "null"], "maxLength": 300 }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+互斥约束（`superRefine`，不是靠 prompt 自觉）：
+
+- `final` 与 `tool_calls` 同时非空 → **拒绝**（否则循环无法收敛）
+- 两者都为空 → **拒绝**（模型卡住时必须重试，不能静默推进）
+
+### 5.6.4 护栏（模型无法绕过）
+
+| 护栏 | 位置 | 说明 |
+|---|---|---|
+| 轮数上限 | `MAX_AGENT_ROUNDS = 3` | 超轮未收敛 → 判定失败，由调用方退回下一题 |
+| 工具白名单 | schema `enum` | 未知工具在 schema 层就被拒，不会执行 |
+| 追问层数 | `MAX_QUESTION_DEPTH` | 编排服务强制，与 Agent 解耦 |
+| 后置校验 | `normalizeFollowUp()` | 空内容降级、敏感词/禁止项降级（沿用 §5.4） |
+| 短回答短路 | `MIN_ANSWER_LENGTH` | 确定性判定，**不调用模型** |
+
+### 5.6.5 可观测性
+
+每次追问的工具调用轨迹写入 `interview_messages.metadata.toolTrace`
+（只记工具名、参数、是否成功，不记简历原文），可回答「它为什么追问这个」。
+
+---
+
 ## 6. 逐题评分（Evaluation）
 
 **调用时机**：面试进行中每题回答后，或面试结束后批量评分。

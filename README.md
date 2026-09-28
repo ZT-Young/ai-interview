@@ -18,10 +18,28 @@
 | Phase 4b | 面试房间 UI（气泡/计时/进度/语音/断线重连） | ✅ 完成（语音转文字待 ASR 选型） |
 | Phase 5 | 逐题评分与报告生成、报告页 | ✅ 完成（真实 LLM 端到端待凭证） |
 | Phase 6 | 报告页增强、历史记录页、会员页 | ✅ 完成（支付渠道待定，仅做展示） |
-| Phase 7 | 支付与会员最小闭环（兑换码 + 回调幂等） | ✅ 完成（真实渠道待接入） |
+| Phase 7 | 支付与会员最小闭环（兑换码 + 回调幂等） | ✅ 完成（**门禁已关闭**：见「免费模式」，恢复收费只需 `FREE_MODE=false`） |
 | Phase 8 | 管理后台最小版 + AI 调用日志 | ✅ 完成 |
 | Phase 9 | 测试补全、合规页面、数据导出/删除、可观测性、部署文档、CI | ✅ 完成 |
-| Phase 10 | 接入真实支付渠道与 ASR 供应商 | ⬜ 待选型 |
+| Phase 10 | 接入真实支付渠道与 ASR 供应商 | ⬜ 待选型（免费模式下**支付渠道不阻塞**；ASR 仍待定） |
+
+---
+
+## 免费模式
+
+产品决策：**V1 全功能免费** —— 所有登录用户无限次面试、查看完整报告、使用语音入口。
+
+实现方式是**保留代码、关闭门禁**，而不是删除支付模块：
+
+- 开关：`FREE_MODE`（`lib/config/free-mode.ts` 的 `isFreeMode()`，默认开启，严格 `"false"` 才关闭）
+- 判定落点只有两处：`computeEntitlements()`、`hasReportUnlock()`
+  （外加 `consumeFreeTrial()` 不再扣免费额度）
+- 免费模式下 `/membership`、`/orders` 重定向到 `/sessions`，导航隐藏会员入口与剩余次数
+- 订单、回调验签、兑换码、会员服务与对应测试**全部保留**，将来恢复收费不需要改代码
+- 测试默认按付费模式跑（`tests/setup.ts` 置 `FREE_MODE=false`），
+  免费模式由 `tests/unit/free-mode.test.ts` 覆盖
+
+详见 [AGENTS.md §3.3](./AGENTS.md)。
 
 ---
 
@@ -395,7 +413,7 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 │   └── helpers/                # fakes.ts · db.ts
 ├── e2e/                        # Playwright：public · authz · interview · report · compliance · legal-links
 ├── scripts/                    # dev-all · local-pg · e2e-seed · check-secrets · audit-public
-├── docs/                       # 文档索引见 docs/README.md（product / engineering / design / ops）
+├── docs/                       # 文档索引见 docs/README.md（product / engineering / design / ops / showcase）
 └── 配置文件                       # next · tailwind · drizzle · vitest · playwright · eslint · prettier · tsconfig
 ```
 
@@ -835,15 +853,19 @@ ADMIN_VIEW_RESUME_CONTENT="true"   # 必须严格为 "true"，不接受 1/TRUE
 1. **工作目录混合**：仓库根目录同时存放 DSH harness 运行时（`DshWeb.exe`、`runtimes/`、`*.cmd`、`*.vbs`）。
    这些文件**不属于本项目**，已在 `.gitignore` / `.eslintignore` / `.prettierignore` / `tsconfig.json` 中排除。
 2. **集成测试需数据库**：`tests/integration/*` 在缺少 `DATABASE_URL` 或 `AUTH_SECRET` 时**显式跳过**（不会伪装通过）。
-3. **未定选型**：ASR 供应商、支付渠道仍为 TBD（见 AGENTS.md §9.2）；
+3. **付费门禁已关闭（免费模式）**：`FREE_MODE` 默认开启，权益判定一律全量放行，
+   会员页与订单页重定向；支付代码保留未删。测试默认按付费模式运行，见上文「免费模式」。
+   **未定选型**：ASR 供应商、支付渠道仍为 TBD（见 AGENTS.md §9.2）；
    对象存储与 LLM 已通过端口抽象隔离，可随时替换供应商。
 4. **`e2e` 会自动拉起服务**：`playwright.config.ts` 已启用 `webServer`（用 `pnpm dev`）。
    首次运行需先 `pnpm exec playwright install chromium` 下载浏览器。
 5. **`next/font/google` 需外网**：构建时访问 `fonts.gstatic.com`，受限网络下会重试或失败，可改为 `next/font/local`。
 6. **Phase 1 未包含**：邮箱验证、找回密码、第三方登录、二次验证。
-7. **文档现状**：`docs/` 现有 9 份 ——
-   `PRD.md`、`DATA_MODEL.md`、`ARCHITECTURE.md`、`AI_PROMPTS.md`、`UI.md`、
-   `METRICS.md`、`BETA_FEEDBACK.md`、`ITERATION_PLAN.md`、`DEPLOYMENT.md`。
+7. **文档现状**：`docs/` 现有 12 份（分组索引见 [`docs/README.md`](./docs/README.md)）——
+   product：`PRD.md`、`METRICS.md`、`ITERATION_PLAN.md`、`BETA_FEEDBACK.md`；
+   engineering：`ARCHITECTURE.md`、`DATA_MODEL.md`、`AI_PROMPTS.md`、`AI_QUALITY_BASELINE.md`；
+   design：`UI.md`；ops：`DEPLOYMENT.md`；
+   showcase：`index.html`（单文件展示页，浏览器直接打开）、`INTERVIEW_QA.md`（面试问答准备）。
    仅 `docs/TASKS.md` 仍缺（任务拆解目前只存在于开发过程中的对话里）。
    另：`AI_PROMPTS.md` 已覆盖 JD/简历/匹配/出题/追问/评分/报告全部七类；
    `evaluations.*` 与 `reports.*` **不再是「不稳定契约」**。
@@ -930,11 +952,49 @@ ADMIN_VIEW_RESUME_CONTENT="true"   # 必须严格为 "true"，不接受 1/TRUE
     「查看报告」入口，于是「从历史记录进入旧报告」永久失败
     （现象像 seed 数据损坏，实为一个清理调用做成了重置调用）。
     现已支持 `cleanupOnly: true`：只清理、不动目标会话状态。
-26. **本地嵌入式 Postgres 在 Windows 上会因强制终止而僵死**：`Stop-Process` 杀掉
+26. **空回答曾 100% 评分失败（已修复）**：`evidence_quotes` 的 schema 强制 `min(1)`，
+    而**未作答时根本没有可引用的原文**，于是模型只能编造引用或被判为格式错误，
+    两次重试后返回 `evaluation_failed` —— 用户跳过某题，这道题就永远评不了分。
+    这是**评测集跑第一遍就暴露出来的**（见 [evals/README.md](./evals/README.md)），
+    单测完全没发现：所有单测用的都是非空回答。
+    修复方式是把业务规则从 schema 上移到服务层：schema 去掉 `min(1)`，
+    新增纯函数 `applyNoAnswerRule()` 在服务端强制六维归零兜底。
+27. **`prompt_version` 从未落库（未修复）**：`OpenAiCompatibleLlm` 调用 `logAiSuccess()`
+    时没有传 `promptVersion`，看板里该字段全是 `unknown`。
+    后果是**改了 prompt 无法归因** —— 成功率和时延变了，却说不清是哪一版 prompt 造成的。
+28. **本地嵌入式 Postgres 在 Windows 上会因强制终止而僵死**：`Stop-Process` 杀掉
     dev server 后若留下 postgres 子进程，端口仍 `LISTENING` 但新连接全部失败
     （`CONNECT_TIMEOUT`，`/api/health` 恒为 degraded）。
     此时需**终止所有 postgres 进程**再重新 `pnpm dev:all`，
     数据目录 `.local-pg/` 不会丢。
+
+---
+
+## AI 质量与评测
+
+代码能跑不等于模型好用。两条命令把「好不好」变成可测量的数字：
+
+```bash
+pnpm ai:quality    # 调用成功率 / P50-P99 时延 / token 与成本（读 ai_call_logs）
+pnpm eval:scoring  # 评分器评测：一致性、区分度、证据合规（真实调模型）
+pnpm eval:agent    # 追问决策评测：旧单次调用 vs 面试官 Agent 的对比
+```
+
+**面试官 Agent**：追问不再是一次调用出结果，而是「思考 → 检索简历/JD/历史 → 观察 → 再决策」
+的最多 3 轮循环（`lib/ai/agent/`）。护栏（追问层数上限、短回答短路、敏感词降级）
+全部留在服务端，模型无权绕过；每次追问的工具调用轨迹写入消息 metadata，可审计。
+对比基线：决策准确率 83.3% → 100%，代价是时延 1.7s → 6.1s。
+
+基线数字与已知缺陷见 [docs/engineering/AI_QUALITY_BASELINE.md](./docs/engineering/AI_QUALITY_BASELINE.md)，
+用例集与运行方式见 [evals/README.md](./evals/README.md)。
+
+当前基线：评分成功率 100%，重复评分标准差约 2 分（百分制），
+好/中/敷衍三档答案区分度极差 58–63 分，证据引用 100% 来自回答原文。
+
+**对外展示**：[docs/showcase/index.html](./docs/showcase/index.html) 是给不了解本项目的人
+（面试官 / 评审）看的单文件展示页，无外部依赖，浏览器直接打开；
+[docs/showcase/INTERVIEW_QA.md](./docs/showcase/INTERVIEW_QA.md) 是配套的面试问答准备。
+两处的数字全部引自上面的基线文档，改基线要同步改展示页。
 
 ---
 
@@ -945,7 +1005,8 @@ ADMIN_VIEW_RESUME_CONTENT="true"   # 必须严格为 "true"，不接受 1/TRUE
 内测前必须先完成三项（详见迭代计划 §2），它们都不是新功能，而是**让产品能被真实测量与验证**：
 
 1. **埋点落地 + 隐私政策同步提版**（行为采集属处理目的变更，须重新征得同意）
-2. **接入真实支付渠道**（当前仅兑换码，**付费率恒为 0**）
+2. ~~**接入真实支付渠道**~~ —— **已不需要**：产品改为全功能免费（`FREE_MODE`），
+   付费率不再是北极星指标。若未来恢复收费，再按 AGENTS.md §9.2 定渠道与解锁模型
 3. **`git init` + 让 CI 真正执行**（CI 与密钥检查已写好但从未跑过）
 
 Phase 5：逐题评分与报告生成。
