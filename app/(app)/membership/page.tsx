@@ -1,10 +1,12 @@
 ﻿import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 import { RedeemForm } from '@/components/features/membership/redeem-form'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { requirePageUser } from '@/lib/api/guard'
+import { isFreeMode } from '@/lib/config/free-mode'
 import { listProducts } from '@/lib/payments/products'
 import { isPaymentConfigured } from '@/lib/payments/provider'
 import { getEntitlements } from '@/lib/services/handlers/entitlement-service'
@@ -24,9 +26,15 @@ function formatPrice(cents: number, currency: string): string {
  * 展示免费次数、权益对照、商品与兑换码入口。
  * **升级按钮仅在支付渠道配置后启用**，否则只显示兑换码路径 ——
  * 不给出无法完成的购买路径。
+ *
+ * **免费模式下整页不可用**：产品决策为全功能免费，本页的定价与购买入口全部失去意义，
+ * 因此直接重定向到历史记录，而不是留一个「价格但无处可买」的页面。
+ * 恢复收费只需部署时设 `FREE_MODE=false`，页面无需改动。
  */
 export default async function MembershipPage() {
+  // 先守卫再重定向：未登录时统一跳登录，避免免费模式的重定向抢在鉴权之前
   const user = await requirePageUser()
+  if (isFreeMode()) redirect('/sessions')
   const [membership, entitlements] = await Promise.all([
     getMembership(user.id),
     getEntitlements(user.id),

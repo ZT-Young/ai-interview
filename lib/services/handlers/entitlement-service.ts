@@ -3,6 +3,7 @@ import { and, eq, sql } from 'drizzle-orm'
 import { getDb } from '@/db/client'
 import { payments, users } from '@/db/schema'
 import { notFound } from '@/lib/api/errors'
+import { isFreeMode } from '@/lib/config/free-mode'
 import type { MembershipLevel } from '@/lib/services/handlers/membership-service'
 
 /**
@@ -18,6 +19,11 @@ import type { MembershipLevel } from '@/lib/services/handlers/membership-service
  * | 完整面试次数 | 1 次（`free_credits`） | 无限 |
  * | 报告 | 简版（总分/六维/优势/基础建议） | 详细（逐题反馈/证据/参考回答/风险点） |
  * | 语音面试 | ✗ | ✓ |
+ *
+ * **当前处于免费模式（默认）**：上表的门禁整体关闭，所有登录用户一律按
+ * 「无限次数 + 详细报告 + 语音入口」放行。判定集中在 `computeEntitlements()`
+ * 与 `hasReportUnlock()` 两处，恢复收费只需部署时设 `FREE_MODE=false`，
+ * 不需要改任何业务代码（见 lib/config/free-mode.ts）。
  */
 
 /** 免费额度消耗的凭证类型 */
@@ -55,10 +61,27 @@ export interface Entitlements {
 /**
  * **纯函数**权益计算（可离线单测，不触库）。
  *
- * 会员：无限次数 + 详细报告 + 语音。
- * 免费：额度余额 > 0 才能开始面试；报告始终为简版；无语音。
+ * 免费模式（默认）：无条件全量放行 —— 不看会员等级、不扣额度。
+ * 付费模式（`FREE_MODE=false`）：
+ * - 会员：无限次数 + 详细报告 + 语音。
+ * - 免费：额度余额 > 0 才能开始面试；报告始终为简版；无语音。
  */
 export function computeEntitlements(input: EntitlementInput): Entitlements {
+  const consumedFreeTrials = Math.max(0, input.consumedFreeTrials)
+
+  if (isFreeMode()) {
+    return {
+      membership: input.membership,
+      isMember: true,
+      freeCreditsLeft: Math.max(0, input.freeCredits),
+      consumedFreeTrials,
+      unlimitedInterviews: true,
+      canStartInterview: true,
+      reportDetail: true,
+      voiceInterview: true,
+    }
+  }
+
   const isMember = input.membership !== 'free'
   const freeCreditsLeft = Math.max(0, input.freeCredits)
 
@@ -66,7 +89,7 @@ export function computeEntitlements(input: EntitlementInput): Entitlements {
     membership: input.membership,
     isMember,
     freeCreditsLeft: isMember ? 0 : freeCreditsLeft,
-    consumedFreeTrials: Math.max(0, input.consumedFreeTrials),
+    consumedFreeTrials,
     unlimitedInterviews: isMember,
     canStartInterview: isMember || freeCreditsLeft > 0,
     reportDetail: isMember,
@@ -116,11 +139,14 @@ export async function getEntitlements(userId: string): Promise<Entitlements> {
 /**
  * 某份报告是否已解锁（详细报告）。
  *
- * 判定依据：会员，或该报告有一条 `unlock_type='report' AND status='paid'` 的订单。
+ * 判定依据：免费模式恒为 true；否则为会员，或该报告有一条
+ * `unlock_type='report' AND status='paid'` 的订单。
  * 注意：**不看 `reports.is_unlocked` 字段本身**，因为它可能与订单不一致；
  * 订单才是权威凭证。
  */
 export async function hasReportUnlock(userId: string, reportId: string): Promise<boolean> {
+  if (isFreeMode()) return true
+
   const db = getDb()
   const rows = await db
     .select({ id: payments.id })

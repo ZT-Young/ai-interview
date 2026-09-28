@@ -23,9 +23,19 @@ const NAV_ITEMS = [
   { href: '/resumes', label: '简历', icon: FileText },
   { href: '/jd', label: '岗位 JD', icon: Target },
   { href: '/sessions', label: '历史记录', icon: History },
-  { href: '/membership', label: '会员', icon: Sparkles },
+  { href: '/membership', label: '会员', icon: Sparkles, paidOnly: true },
   { href: '/settings', label: '设置', icon: Settings },
 ] as const
+
+/**
+ * 免费模式下过滤掉付费相关入口（会员页）。
+ *
+ * 由服务端通过 `freeMode` 传入，而不是在客户端读环境变量：
+ * 导航是否展示属于渲染决策，判定仍以服务端权益为准（本组件不做任何门禁）。
+ */
+function visibleNavItems(freeMode: boolean) {
+  return freeMode ? NAV_ITEMS.filter((item) => !('paidOnly' in item) || !item.paidOnly) : NAV_ITEMS
+}
 
 export interface AppNavUser {
   email: string
@@ -45,11 +55,12 @@ export interface AppNavUser {
  * 3. **移动端折叠**：375px 下 5 个入口会挤成两行且中英文混排换行错乱，
  *    现在收进抽屉；并显示剩余次数与退出入口（此前移动端无处退出）。
  */
-export function AppNav({ user }: { user: AppNavUser }) {
+export function AppNav({ user, freeMode = false }: { user: AppNavUser; freeMode?: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const items = visibleNavItems(freeMode)
 
   // 路由变化后自动收起抽屉，避免跳转后菜单仍悬在页面上
   useEffect(() => {
@@ -83,7 +94,7 @@ export function AppNav({ user }: { user: AppNavUser }) {
 
         {/* 桌面端导航 */}
         <nav className="ml-2 hidden items-center gap-1 md:flex" aria-label="主导航">
-          {NAV_ITEMS.map((item) => (
+          {items.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -101,17 +112,20 @@ export function AppNav({ user }: { user: AppNavUser }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* 剩余次数：让「还能面几次」随时可见，避免用户跑到会员页才发现用不了 */}
-          <Link
-            href="/membership"
-            className="hidden items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground sm:flex"
-            title="剩余面试次数"
-          >
-            <Coins className="size-3.5" aria-hidden="true" />
-            <span data-testid="nav-free-credits">
-              {user.membership === 'plus' ? '无限' : `${user.freeCredits} 次`}
-            </span>
-          </Link>
+          {/* 剩余次数：让「还能面几次」随时可见，避免用户跑到会员页才发现用不了。
+              免费模式下面试次数不限，展示次数反而误导，因此隐藏。 */}
+          {freeMode ? null : (
+            <Link
+              href="/membership"
+              className="hidden items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground sm:flex"
+              title="剩余面试次数"
+            >
+              <Coins className="size-3.5" aria-hidden="true" />
+              <span data-testid="nav-free-credits">
+                {user.membership === 'plus' ? '无限' : `${user.freeCredits} 次`}
+              </span>
+            </Link>
+          )}
 
           <span
             className="hidden max-w-[12rem] truncate text-sm text-muted-foreground lg:inline"
@@ -156,7 +170,7 @@ export function AppNav({ user }: { user: AppNavUser }) {
       {menuOpen ? (
         <div id="mobile-nav" className="border-t bg-background md:hidden" data-testid="mobile-nav">
           <nav className="container flex flex-col py-2" aria-label="主导航（移动端）">
-            {NAV_ITEMS.map((item) => {
+            {items.map((item) => {
               const Icon = item.icon
               return (
                 <Link
@@ -189,9 +203,11 @@ export function AppNav({ user }: { user: AppNavUser }) {
           <div className="container flex items-center justify-between gap-3 border-t py-3">
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{displayName}</p>
-              <p className="text-xs text-muted-foreground">
-                剩余 {user.membership === 'plus' ? '无限' : `${user.freeCredits} 次`}
-              </p>
+              {freeMode ? null : (
+                <p className="text-xs text-muted-foreground">
+                  剩余 {user.membership === 'plus' ? '无限' : `${user.freeCredits} 次`}
+                </p>
+              )}
             </div>
             <Button variant="outline" size="sm" onClick={handleLogout} disabled={loggingOut}>
               <LogOut className="size-4" aria-hidden="true" />

@@ -2,6 +2,7 @@ import Link from 'next/link'
 
 import { AppNav, type AppNavUser } from '@/components/layout/app-nav'
 import { optionalUser } from '@/lib/api/guard'
+import { isFreeMode } from '@/lib/config/free-mode'
 
 /**
  * 已登录区域的顶部导航（服务端组件）。
@@ -25,7 +26,8 @@ export async function AppHeader() {
 
   return (
     <>
-      <AppNav user={viewUser} />
+      {/* 免费模式下隐藏会员入口与剩余次数（服务端判定，前端不做门禁决策） */}
+      <AppNav user={viewUser} freeMode={isFreeMode()} />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-16 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:text-primary-foreground"

@@ -1,8 +1,10 @@
 ﻿import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { requirePageUser } from '@/lib/api/guard'
+import { isFreeMode } from '@/lib/config/free-mode'
 import { listOrders } from '@/lib/services/handlers/membership-service'
 
 export const metadata = { title: '订单记录' }
@@ -35,9 +37,14 @@ function formatAmount(cents: number, currency: string): string {
  *
  * 支付渠道未接入，因此正常情况下为空列表 —— 空状态需明确说明原因，
  * 而不是让用户以为是加载失败。渠道订单号已脱敏展示。
+ *
+ * **免费模式下整页不可用**：不会产生任何订单，空列表页只会让人困惑，
+ * 因此与会员页一致重定向到历史记录。恢复收费只需设 `FREE_MODE=false`。
  */
 export default async function OrdersPage() {
+  // 先守卫再重定向：未登录时统一跳登录，避免免费模式的重定向抢在鉴权之前
   const user = await requirePageUser()
+  if (isFreeMode()) redirect('/sessions')
   const orders = await listOrders(user.id)
 
   return (

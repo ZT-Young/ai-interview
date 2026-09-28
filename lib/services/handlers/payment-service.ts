@@ -3,6 +3,7 @@
 import { getDb } from '@/db/client'
 import { auditLogs, payments, reports, users } from '@/db/schema'
 import { conflict, notFound, validationError } from '@/lib/api/errors'
+import { isFreeMode } from '@/lib/config/free-mode'
 import { getProduct, type Product } from '@/lib/payments/products'
 import { newProviderOrderId } from '@/lib/payments/provider'
 
@@ -244,8 +245,8 @@ export async function consumeFreeTrial(
     const user = userRows[0]
     if (!user) throw notFound('用户不存在')
 
-    // 会员不消耗免费额度
-    if (user.membership !== 'free') {
+    // 会员不消耗免费额度；免费模式下所有人都不消耗（见 lib/config/free-mode.ts）
+    if (isFreeMode() || user.membership !== 'free') {
       return { consumed: false, remaining: 0, reason: 'member' as const }
     }
 

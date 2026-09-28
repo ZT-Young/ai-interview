@@ -4,6 +4,7 @@ import { DataRightsPanel } from '@/components/features/settings/data-rights-pane
 import { LogoutButton } from '@/components/features/auth/logout-button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { requirePageUser } from '@/lib/api/guard'
+import { isFreeMode } from '@/lib/config/free-mode'
 import { legalPath, listLegalDocuments } from '@/lib/legal/documents'
 import { getEntitlements } from '@/lib/services/handlers/entitlement-service'
 
@@ -35,14 +36,16 @@ export default async function SettingsPage() {
         <CardContent className="space-y-2 text-sm">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">会员等级</span>
-            <span>{entitlements.membership}</span>
+            <span>{isFreeMode() ? '免费模式（全功能开放）' : entitlements.membership}</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">剩余面试次数</span>
-            <span className="tabular-nums">
-              {entitlements.unlimitedInterviews ? '无限' : entitlements.freeCreditsLeft}
-            </span>
-          </div>
+          {isFreeMode() ? null : (
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">剩余面试次数</span>
+              <span className="tabular-nums">
+                {entitlements.unlimitedInterviews ? '无限' : entitlements.freeCreditsLeft}
+              </span>
+            </div>
+          )}
           <div className="pt-1">
             <LogoutButton />
           </div>

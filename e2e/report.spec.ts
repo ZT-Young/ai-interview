@@ -19,6 +19,12 @@ import { missingReasons, readReportSeed } from './seed'
 const seed = readReportSeed()
 const missing = missingReasons(seed)
 
+/**
+ * 免费模式（默认开启）下会员页与订单页会重定向，付费入口不展示；
+ * 设 `FREE_MODE=false` 后下面的付费门禁用例恢复生效。
+ */
+const FREE_MODE = process.env.FREE_MODE !== 'false'
+
 test.describe('报告页', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(missing.length > 0, `缺少前置条件：${missing.join('、')}（见 e2e/report.spec.ts 顶部说明）`)
@@ -160,6 +166,7 @@ test.describe('会员与订单页', () => {
   })
 
   test('会员页展示免费次数、权益对照与订单入口', async ({ page }) => {
+    test.skip(FREE_MODE, '免费模式下会员页重定向到历史记录')
     await page.goto('/membership')
 
     await expect(page.getByTestId('membership-status')).toBeVisible()
@@ -174,6 +181,7 @@ test.describe('会员与订单页', () => {
   })
 
   test('订单记录入口可打开并展示订单列表', async ({ page }) => {
+    test.skip(FREE_MODE, '免费模式下会员页与订单页均重定向')
     await page.goto('/membership')
     await page.getByTestId('orders-link').click()
 
@@ -184,5 +192,19 @@ test.describe('会员与订单页', () => {
     await expect(
       page.getByTestId('orders-empty').or(page.getByTestId('orders-list')),
     ).toBeVisible()
+  })
+
+  test('免费模式：会员页与订单页重定向到历史记录，导航无会员入口', async ({ page }) => {
+    test.skip(!FREE_MODE, '当前为付费模式（FREE_MODE=false）')
+
+    await page.goto('/membership')
+    await expect(page).toHaveURL(/\/sessions/)
+
+    await page.goto('/orders')
+    await expect(page).toHaveURL(/\/sessions/)
+
+    // 导航里不再出现「会员」入口与剩余次数
+    await expect(page.getByRole('navigation', { name: '主导航' }).getByText('会员')).toHaveCount(0)
+    await expect(page.getByTestId('nav-free-credits')).toHaveCount(0)
   })
 })
