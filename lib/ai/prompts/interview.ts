@@ -5,6 +5,12 @@ import type { PromptTemplate } from './parse'
  * 追问与提示的 prompt —— docs/engineering/AI_PROMPTS.md §5.2 / §5.5 的代码实现。
  */
 
+/** prompt 版本，写入 ai_call_logs.prompt_version 用于改动归因（改动时递增） */
+export const PROMPT_VERSION = {
+  followUp: 'followUp@1',
+  hint: 'hint@1',
+} as const
+
 export interface FollowUpPromptInput {
   /** 当前主问题内容 */
   question: string

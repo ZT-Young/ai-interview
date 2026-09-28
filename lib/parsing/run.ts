@@ -63,6 +63,8 @@ export interface AttemptInput<S extends z.ZodTypeAny> {
   images?: ChatImage[]
   /** 业务操作类型，用于 AI 调用日志（lib/ai/logger.ts） */
   operation?: AiOperation
+  /** prompt 版本，透传给 LlmPort 写入 ai_call_logs，用于改动归因 */
+  promptVersion?: string | null
   /** 关联用户与会话，便于从日志跳转排查 */
   userId?: string | null
   sessionId?: string | null
@@ -170,6 +172,7 @@ export async function parseWithRetry<S extends z.ZodTypeAny>(
         operation: input.operation,
         userId: input.userId ?? null,
         sessionId: input.sessionId ?? null,
+        promptVersion: input.promptVersion ?? null,
       })
     } catch (error) {
       // 调用层面失败（网络/鉴权/限流）→ 不再重试，直接判定服务不可用

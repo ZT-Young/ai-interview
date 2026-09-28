@@ -959,9 +959,13 @@ ADMIN_VIEW_RESUME_CONTENT="true"   # 必须严格为 "true"，不接受 1/TRUE
     单测完全没发现：所有单测用的都是非空回答。
     修复方式是把业务规则从 schema 上移到服务层：schema 去掉 `min(1)`，
     新增纯函数 `applyNoAnswerRule()` 在服务端强制六维归零兜底。
-27. **`prompt_version` 从未落库（未修复）**：`OpenAiCompatibleLlm` 调用 `logAiSuccess()`
-    时没有传 `promptVersion`，看板里该字段全是 `unknown`。
-    后果是**改了 prompt 无法归因** —— 成功率和时延变了，却说不清是哪一版 prompt 造成的。
+27. **`prompt_version` 曾从未落库（已修复）**：根因不是「忘了传」，而是
+    `LlmRequest` 接口压根没有 `promptVersion` 字段，唯一的 `logAiSuccess()`
+    调用点（`lib/parsing/llm-port.ts`）无从取值，看板里该字段全是 `unknown`，
+    导致**改了 prompt 无法归因**。
+    修法是接口加字段 → 端口透传 → 各 prompt 模块导出 `PROMPT_VERSION`
+    （形如 `parse.jd@1`、`evaluation@1`）并由调用方传入。
+    **改 prompt 必须递增对应版本号**，否则归因会指向错误的版本。
 28. **本地嵌入式 Postgres 在 Windows 上会因强制终止而僵死**：`Stop-Process` 杀掉
     dev server 后若留下 postgres 子进程，端口仍 `LISTENING` 但新连接全部失败
     （`CONNECT_TIMEOUT`，`/api/health` 恒为 degraded）。

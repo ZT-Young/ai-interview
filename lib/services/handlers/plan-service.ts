@@ -4,7 +4,7 @@ import { getDb } from '@/db/client'
 import { interviewSessions, questions, resumes, jobJds } from '@/db/schema'
 import { internalError, notFound, validationError } from '@/lib/api/errors'
 import { ownedByActive } from '@/lib/api/ownership'
-import { buildPlanPrompt } from '@/lib/ai/prompts/plan'
+import { buildPlanPrompt, PROMPT_VERSION } from '@/lib/ai/prompts/plan'
 import type { JdData, ResumeData } from '@/lib/ai/schemas/parse'
 import {
   analyzePlan,
@@ -175,7 +175,13 @@ function planMaxTokens(): number {
  */
 async function attemptPlan(
   llm: LlmPort,
-  input: { system: string; user: string; temperature?: number; maxTokens?: number },
+  input: {
+    system: string
+    user: string
+    temperature?: number
+    maxTokens?: number
+    promptVersion?: string | null
+  },
 ): Promise<
   | { kind: 'ok'; questions: PlanQuestion[]; analysis: PlanAnalysis; model: string }
   | { kind: 'llm_error'; error: unknown }
@@ -189,6 +195,7 @@ async function attemptPlan(
       user: input.user,
       temperature: input.temperature,
       maxTokens: input.maxTokens ?? planMaxTokens(),
+      promptVersion: input.promptVersion ?? null,
     })
   } catch (error) {
     return { kind: 'llm_error', error }
@@ -316,6 +323,7 @@ export async function generatePlan(
       system: prompt.system,
       user: prompt.user,
       temperature: attempt === 1 ? undefined : RETRY_TEMPERATURE,
+      promptVersion: PROMPT_VERSION.plan,
     })
 
     if (outcome.kind === 'llm_error') {

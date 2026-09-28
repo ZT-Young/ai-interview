@@ -1,4 +1,8 @@
-import { buildInterviewAgentSystem, buildObservationMessage } from '@/lib/ai/prompts/interview-agent'
+import {
+  buildInterviewAgentSystem,
+  buildObservationMessage,
+  PROMPT_VERSION,
+} from '@/lib/ai/prompts/interview-agent'
 import { agentStepParseSchema } from '@/lib/ai/schemas/interview-agent'
 import { parseWithRetry } from '@/lib/parsing/run'
 import type { LlmPort } from '@/lib/parsing/llm-port'
@@ -93,6 +97,7 @@ export async function runInterviewAgent(input: AgentRunInput): Promise<AgentRunR
       user,
       schema: agentStepParseSchema,
       temperature: 0.4,
+      promptVersion: PROMPT_VERSION.agent,
     })
 
     if (!outcome.ok) {

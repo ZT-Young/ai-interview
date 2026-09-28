@@ -5,6 +5,12 @@ import type { PromptTemplate } from './parse'
  * 逐题评分与报告生成的 prompt —— docs/engineering/AI_PROMPTS.md §6.2 / §7.2 的代码实现。
  */
 
+/** prompt 版本，写入 ai_call_logs.prompt_version 用于改动归因（改动时递增） */
+export const PROMPT_VERSION = {
+  evaluate: 'evaluation@1',
+  report: 'report@1',
+} as const
+
 export interface EvaluationPromptInput {
   jdJson: string
   /** 简历结构化数据：参考答案必须基于候选人**真实经历**，因此必须传入 */

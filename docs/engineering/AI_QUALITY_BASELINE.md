@@ -106,16 +106,26 @@ pnpm eval:agent --only agent
 修复：schema 去掉 `min(1)`，新增服务层纯函数 `applyNoAnswerRule()` 强制归零兜底。
 修前成功率 85.7%，修后 100%；重试率 28.6% → 14.3%。详见 evals/README.md。
 
-### 4.2 `prompt_version` 从未落库（未修复）
+### 4.2 `prompt_version` 从未落库（已修复）
 
-看板显示 `promptVersion` 全部为 `unknown` —— `OpenAiCompatibleLlm` 调用
-`logAiSuccess()` 时**没有传 `promptVersion`**，而 `evaluations` 表里其实写进去了。
+**根因不是"忘了传"**：`LlmRequest` 接口压根没有 `promptVersion` 字段，
+唯一的 `logAiSuccess()` 调用点（`lib/parsing/llm-port.ts`）无从取值，
+所以看板里该字段恒为 `unknown`。
 
 后果：**无法按 prompt 版本做 A/B 对比**。改了 prompt 之后，
 看板上成功率和时延的变化无法归因到"是哪一版 prompt"，只能凭记忆。
 
-修法很小：`lib/parsing/run.ts` 的 `AttemptInput` 增加 `promptVersion`，
-透传给 `logAiSuccess` / `logAiError`；调用方（parse/plan/evaluate/report）传入 `SCHEMA_VERSION`。
+**已修**（`tests/unit/prompt-version.test.ts` 8 例守卫）：
+
+- `LlmRequest` 与 `parseWithRetry` 的 `AttemptInput` 增加 `promptVersion`，端口层透传
+- 各 prompt 模块导出自己的 `PROMPT_VERSION`，形如 `parse.jd@1` / `plan@1` /
+  `evaluation@1` / `report@1` / `followUp@1` / `hint@1` / `interviewAgent@1`
+- 8 个调用点全部传入自己那个 prompt 的版本；测试断言版本值全局唯一、非空、带 `@n` 后缀
+
+**纪律**：改 prompt 的措辞、规则或输出结构时，必须递增对应版本号（`@1` → `@2`）。
+不递增的话，这次改动会被记到旧版本名下，归因直接失效。
+注意 `evaluations.prompt_version` 写的是 `SCHEMA_VERSION`（契约版本），
+与 `ai_call_logs.prompt_version`（prompt 版本）是两回事，不要混用。
 
 ## 5. 更新纪律
 

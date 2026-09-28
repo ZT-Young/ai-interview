@@ -9,7 +9,12 @@ import {
   type MatchData,
   type ResumeData,
 } from '@/lib/ai/schemas/parse'
-import { buildJdParsePrompt, buildMatchPrompt, buildResumeParsePrompt } from '@/lib/ai/prompts/parse'
+import {
+  buildJdParsePrompt,
+  buildMatchPrompt,
+  buildResumeParsePrompt,
+  PROMPT_VERSION,
+} from '@/lib/ai/prompts/parse'
 import {
   extractDocument,
   MAX_TEXT_LENGTH,
@@ -178,6 +183,7 @@ async function parseJdFromExtraction(
       : undefined,
     schema: jdParseSchema,
     isEmpty: (data) => isJdDataEmpty(data as JdData),
+    promptVersion: PROMPT_VERSION.jdParse,
   })
 
   if (!outcome.ok) {
@@ -274,6 +280,7 @@ async function parseResumeFromExtraction(
       : undefined,
     schema: resumeParseSchema,
     isEmpty: (data) => isResumeDataEmpty(data as ResumeData),
+    promptVersion: PROMPT_VERSION.resumeParse,
   })
 
   if (!outcome.ok) {

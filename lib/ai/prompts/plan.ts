@@ -6,6 +6,11 @@ import type { PromptTemplate } from './parse'
  * 面试计划（出题）prompt —— docs/engineering/AI_PROMPTS.md §4.1 的代码实现。
  */
 
+/** prompt 版本，写入 ai_call_logs.prompt_version 用于改动归因（改动时递增） */
+export const PROMPT_VERSION = {
+  plan: 'plan@1',
+} as const
+
 export interface PlanPromptInput {
   jdJson: string
   resumeJson: string

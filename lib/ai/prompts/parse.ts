@@ -26,6 +26,19 @@ export interface PromptTemplate {
   user: string
 }
 
+/**
+ * prompt 版本 —— 写入 `ai_call_logs.prompt_version`，用于改动归因。
+ *
+ * 改了 prompt 的措辞、规则或输出结构，就把对应项递增（如 `@1` → `@2`）。
+ * 之后 `pnpm ai:quality` 能按版本分组对比成功率与成本，
+ * 才能回答「这次 prompt 改动是变好还是变差」（AGENTS.md §9.4）。
+ */
+export const PROMPT_VERSION = {
+  jdParse: 'parse.jd@1',
+  resumeParse: 'parse.resume@1',
+  match: 'parse.match@1',
+} as const
+
 /** 1. JD 解析（docs/engineering/AI_PROMPTS.md §1.1） */
 export function buildJdParsePrompt(input: { text: string; fromImage: boolean }): PromptTemplate {
   const dataSchema = `{

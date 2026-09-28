@@ -12,6 +12,11 @@ import type { ToolResult } from '../agent/tools'
  * 现在模型可以先查简历确认细节、查 JD 判断是否跑题、查历史避免重复，再决策。
  */
 
+/** prompt 版本，写入 ai_call_logs.prompt_version 用于改动归因（改动时递增） */
+export const PROMPT_VERSION = {
+  agent: 'interviewAgent@1',
+} as const
+
 export interface InterviewAgentSystemInput {
   tools: Array<{ name: AgentToolName; description: string }>
   /** 当前已追问层数（上限由服务端强制，这里只是告知） */

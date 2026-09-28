@@ -80,8 +80,8 @@
   <div class="cards">
     <div class="card">
       <div class="label">测试</div>
-      <div class="value">538</div>
-      <div class="note">37 个文件全绿 · lint/typecheck/build 通过</div>
+      <div class="value">546</div>
+      <div class="note">38 个文件全绿 · lint/typecheck/build 通过</div>
     </div>
     <div class="card">
       <div class="label">评分一致性</div>
@@ -192,7 +192,8 @@
     <li><strong>只覆盖评分与追问</strong>：出题（plan）与报告（report）仍是评测盲区</li>
     <li><strong>没有真实用户数据</strong>：尚未内测，完面率等体验指标无法验证</li>
     <li>语音面试入口已开放，但 ASR 供应商未接入（返回 503 而非伪造转写）</li>
-    <li><code>prompt_version</code> 从未落库，导致改 prompt 后无法按版本归因（已定位，未修）</li>
+    <li><strong>prompt 版本刚接上，还没有历史数据</strong>：此前 <code>prompt_version</code> 从未落库（接口没这个字段），
+      已修复并加了守卫测试；但新版本号要等积累几轮调用才有对比价值</li>
   </ul>
 
   <h2>本地跑起来</h2>

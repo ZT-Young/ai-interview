@@ -165,6 +165,13 @@ C 端求职者粘贴目标岗位 JD、上传个人简历，AI 扮演面试官进
 - 所有 prompt 与规则集中在 `lib/ai`，**规则不得散落在页面组件中**。
 - N1–N7 每一条都应能在代码中找到明确落点；新增/修改 AI 行为时同步更新本节与对应测试。
 - LLM 输出必须做**结构化校验**（schema 校验失败要重试或降级），不信任自由文本直出。
+- **N8 改 prompt 必须递增版本号**：每个 prompt 模块导出 `PROMPT_VERSION`
+  （形如 `parse.jd@1`、`evaluation@1`），调用时传入并写入 `ai_call_logs.prompt_version`。
+  改动 prompt 的措辞、规则或输出结构时**必须递增**（`@1` → `@2`）——
+  不递增，这次改动就会被记到旧版本名下，`pnpm ai:quality` 的版本归因直接失效。
+  守卫测试见 `tests/unit/prompt-version.test.ts`（断言版本号非空、全局唯一、带 `@n` 后缀）。
+  注意 `evaluations.prompt_version` 记的是**契约**版本（`SCHEMA_VERSION`），
+  与 `ai_call_logs.prompt_version`（**prompt** 版本）是两回事，禁止混用。
 
 ### 6.4 面试官 Agent 的额外约束
 

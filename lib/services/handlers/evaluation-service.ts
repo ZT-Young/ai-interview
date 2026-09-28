@@ -4,7 +4,7 @@ import { getDb } from '@/db/client'
 import { answers, evaluations, interviewSessions, jobJds, questions, resumes } from '@/db/schema'
 import { internalError, notFound, validationError } from '@/lib/api/errors'
 import { ownedByActive } from '@/lib/api/ownership'
-import { buildEvaluationPrompt } from '@/lib/ai/prompts/evaluation'
+import { buildEvaluationPrompt, PROMPT_VERSION } from '@/lib/ai/prompts/evaluation'
 import {
   applyNoAnswerRule,
   evaluationParseSchema,
@@ -197,6 +197,7 @@ export async function evaluateAnswer(
       system: prompt.system,
       user: prompt.user,
       schema: evaluationParseSchema,
+      promptVersion: PROMPT_VERSION.evaluate,
     })
 
     if (!outcome.ok) {

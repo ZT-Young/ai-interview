@@ -21,6 +21,17 @@ export interface LlmRequest {
   maxTokens?: number
   /** 业务操作类型，用于 AI 调用日志（lib/ai/logger.ts） */
   operation?: AiOperation
+  /**
+   * prompt 版本，写入 `ai_call_logs.prompt_version`。
+   *
+   * 存在的意义是**归因**：改 prompt 之后要能回答「这次改动是变好还是变差」。
+   * 没有它，日志里所有调用的 prompt_version 恒为 null，就只能按时间粗略切分，
+   * 无法把某次效果波动对应到具体哪次 prompt 改动（AGENTS.md §9.4）。
+   *
+   * 取各 prompt 模块导出的 `PROMPT_VERSION.*`，形如 `evaluation@1`。
+   * 改动 prompt 措辞或结构时必须递增。
+   */
+  promptVersion?: string | null
   /** 关联用户与会话，便于从日志跳转排查 */
   userId?: string | null
   sessionId?: string | null
@@ -67,6 +78,7 @@ export class OpenAiCompatibleLlm implements LlmPort {
         completionTokens: result.usage?.completionTokens ?? null,
         userId: request.userId ?? null,
         sessionId: request.sessionId ?? null,
+        promptVersion: request.promptVersion ?? null,
       })
 
       return { content: result.content, model: result.model, finishReason: result.finishReason }

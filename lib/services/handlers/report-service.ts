@@ -11,7 +11,7 @@ import {
 } from '@/db/schema'
 import { internalError, notFound, validationError } from '@/lib/api/errors'
 import { ownedByActive } from '@/lib/api/ownership'
-import { buildReportPrompt } from '@/lib/ai/prompts/evaluation'
+import { buildReportPrompt, PROMPT_VERSION } from '@/lib/ai/prompts/evaluation'
 import { reportParseSchema, type ReportData } from '@/lib/ai/schemas/evaluation'
 import { SCHEMA_VERSION } from '@/lib/ai/schemas/parse'
 import type { DimensionScores } from '@/lib/ai/schemas/evaluation'
@@ -299,6 +299,7 @@ export async function generateReport(
       system: prompt.system,
       user: prompt.user,
       schema: reportParseSchema,
+      promptVersion: PROMPT_VERSION.report,
     })
 
     if (!outcome.ok) {

@@ -1,4 +1,4 @@
-﻿import { buildMatchPrompt } from '@/lib/ai/prompts/parse'
+﻿import { buildMatchPrompt, PROMPT_VERSION } from '@/lib/ai/prompts/parse'
 import { matchParseSchema, type JdData, type MatchData, type ResumeData } from '@/lib/ai/schemas/parse'
 import { parseError } from '@/lib/parsing/errors'
 import type { LlmPort } from '@/lib/parsing/llm-port'
@@ -32,6 +32,7 @@ export async function matchResumeToJd(
     system: prompt.system,
     user: prompt.user,
     schema: matchParseSchema,
+    promptVersion: PROMPT_VERSION.match,
   })
 
   const extraction = { source: 'text' as const, text: '', pageCount: 0, truncated: false }

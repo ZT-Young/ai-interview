@@ -16,7 +16,7 @@ import { ownedByActive } from '@/lib/api/ownership'
 import { runInterviewAgent, type AgentContext } from '@/lib/ai/agent/loop'
 import type { ToolResult } from '@/lib/ai/agent/tools'
 /** 追问决策已改为 Agent 链路（buildFollowUpPrompt 仍被评测脚本用作对照基线） */
-import { buildHintPrompt } from '@/lib/ai/prompts/interview'
+import { buildHintPrompt, PROMPT_VERSION } from '@/lib/ai/prompts/interview'
 import { hintParseSchema, normalizeFollowUp } from '@/lib/ai/schemas/interview'
 import { MAX_QUESTION_DEPTH } from '@/db/schema/enums'
 import { parseError } from '@/lib/parsing/errors'
@@ -813,6 +813,7 @@ async function generateHint(question: Question, ports: OrchestrationPorts): Prom
     system: prompt.system,
     user: prompt.user,
     schema: hintParseSchema,
+    promptVersion: PROMPT_VERSION.hint,
   })
 
   if (!outcome.ok) {
