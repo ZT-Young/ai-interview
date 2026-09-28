@@ -37,7 +37,18 @@ export const evidenceQuoteSchema = z
 export const evaluationDataSchema = z
   .object({
     dimension_scores: dimensionScoresSchema,
-    evidence_quotes: z.array(evidenceQuoteSchema).min(1).max(5),
+    /**
+     * 证据引用：**刻意不设 `min(1)`**。
+     *
+     * 原因：回答为空（跳过 / 未作答）时不存在任何可引用的原文，
+     * 若 schema 强制 ≥1 条，模型只能编造引用或被判为格式错误，
+     * 实测结果是**空回答的评分 100% 失败**（`evaluation_failed`）。
+     *
+     * 「非空回答必须有证据」这条约束上移到服务层
+     * （evaluation-service：证据全部不匹配原文即重试），
+     * 因为它是**业务规则**而不是结构约束，且需要结合回答内容才能判定。
+     */
+    evidence_quotes: z.array(evidenceQuoteSchema).max(5),
     feedback: z.string().max(800),
     better_answer: z.string().max(800),
     /**
@@ -148,6 +159,45 @@ export function isNoAnswer(answer: string): boolean {
   const trimmed = answer.trim()
   if (trimmed.length === 0) return true
   return trimmed.length < 10
+}
+
+/** 未作答时使用的反馈文案（规则 3：空回答六维给 0 并说明原因） */
+export const EMPTY_ANSWER_FEEDBACK =
+  '本题未作答，无法评估你的回答质量。下次即使不确定，也可以先说出思路与已知部分，再说明不确定的地方。'
+
+/** 六维全 0 */
+export function zeroDimensionScores(): DimensionScores {
+  return { job_match: 0, professional: 0, project_depth: 0, logic: 0, communication: 0, motivation: 0 }
+}
+
+/** 六维是否全为 0 */
+export function isAllZero(scores: DimensionScores): boolean {
+  return SCORE_DIMENSION_VALUES.every((dimension) => scores[dimension] === 0)
+}
+
+/**
+ * 未作答规则（prompt 规则 3 的**服务端强制**版本）。
+ *
+ * 为什么不信任模型：空回答时模型偶尔会给"同情分"（逻辑/沟通给 1-2 分），
+ * 也会因为 schema 要求证据而编造引用。这里统一在服务端兜底 ——
+ * 六维归零并补上说明文案，而不是让整题评分失败（历史上空回答必然失败）。
+ *
+ * 纯函数，可直接单测（tests/unit/evaluation-schema.test.ts）。
+ */
+export function applyNoAnswerRule(data: EvaluationData, answer: string): EvaluationData {
+  if (!isNoAnswer(answer)) return data
+
+  return {
+    dimension_scores: zeroDimensionScores(),
+    // 空回答不存在原文，证据一律清空，避免编造引用
+    evidence_quotes: [],
+    feedback: data.feedback.trim().length >= 10 ? data.feedback.trim() : EMPTY_ANSWER_FEEDBACK,
+    better_answer:
+      data.better_answer.trim().length > 0
+        ? data.better_answer
+        : '先说明你对这道题的理解，再讲思路与已知部分，最后标注不确定的地方。',
+    reference_answer: '',
+  }
 }
 
 /** 低分判定阈值：任一维度低于该值即需给出可执行建议 */

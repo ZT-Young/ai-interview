@@ -88,3 +88,6 @@ next-env.d.ts
 /_*.mts
 /_*.json
 /_*.log
+
+# 评测产物（每次运行生成，只留 latest.md 也足够；原始 JSON 不入库）
+/evals/reports/

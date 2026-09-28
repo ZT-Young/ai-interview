@@ -6,9 +6,11 @@ import { internalError, notFound, validationError } from '@/lib/api/errors'
 import { ownedByActive } from '@/lib/api/ownership'
 import { buildEvaluationPrompt } from '@/lib/ai/prompts/evaluation'
 import {
+  applyNoAnswerRule,
   evaluationParseSchema,
   GENERIC_IMPROVEMENT_HINT,
   hasLowDimension,
+  isNoAnswer,
   verifyEvidenceQuotes,
   type DimensionScores,
   type EvidenceVerification,
@@ -210,13 +212,20 @@ export async function evaluateAnswer(
       continue
     }
 
-    const data = outcome.data.data
-    const verified = verifyEvidenceQuotes(data.evidence_quotes, answer.content)
+    // 未作答：服务端兜底归零（不再要求证据，否则空回答必然评分失败）
+    const noAnswer = isNoAnswer(answer.content)
+    const data = noAnswer
+      ? applyNoAnswerRule(outcome.data.data, answer.content)
+      : outcome.data.data
+
+    const verified = noAnswer
+      ? { quotes: [], dropped: [] }
+      : verifyEvidenceQuotes(data.evidence_quotes, answer.content)
     // 累积被剔除的引用，供返回与审计
     lastDropped = [...lastDropped, ...verified.dropped]
 
-    // 证据全部不匹配原文 → 视为无效评分，重试（防止编造引用）
-    if (verified.quotes.length === 0) continue
+    // 非空回答：证据全部不匹配原文 → 视为无效评分，重试（防止编造引用）
+    if (!noAnswer && verified.quotes.length === 0) continue
 
     let feedback = data.feedback
     // 低分必须给出可执行建议

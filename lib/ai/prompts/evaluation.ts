@@ -42,6 +42,8 @@ export function buildEvaluationPrompt(input: EvaluationPromptInput): PromptTempl
 1. **每条评分都要引用回答原文证据**：evidence_quotes 至少 1 条，
    每条 quote 必须是从回答中**逐字复制的片段**（不得改写、不得拼接、不得编造）。
    系统会校验 quote 是否为回答原文的子串，不匹配的会被剔除。
+   **唯一例外**：回答为空（未作答）时不存在可引用的原文，此时 evidence_quotes
+   必须写成空数组（evidence_quotes: []），**不要编造任何引用**。
 2. **禁止编造候选人未提及的经历、公司、数字或技能**。
 3. 回答为空或明显未作答时，六维均给 0，并在 feedback 中说明原因。
 4. 任一维度低于 3 分时，feedback 必须包含**可执行的改进建议**

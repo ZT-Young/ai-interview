@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  applyNoAnswerRule,
+  EMPTY_ANSWER_FEEDBACK,
   evaluationParseSchema,
   GENERIC_IMPROVEMENT_HINT,
   hasLowDimension,
+  isAllZero,
   isNoAnswer,
   LOW_SCORE_THRESHOLD,
   reportParseSchema,
@@ -75,10 +78,15 @@ describe('逐题评分 schema', () => {
     expect(evaluationParseSchema.safeParse(payload).success).toBe(false)
   })
 
-  it('拒绝空证据数组（评分必须引用证据）', () => {
+  /**
+   * 空证据数组在 **schema 层是允许的**：未作答时不存在可引用的原文，
+   * 强制 min(1) 会让空回答的评分 100% 失败（评测实测，见 evals/README.md）。
+   * 「非空回答必须有证据」由服务层保证（evaluation-service：证据不匹配即重试）。
+   */
+  it('允许空证据数组（未作答场景），非空回答的证据约束在服务层', () => {
     expect(
       evaluationParseSchema.safeParse(validEvaluation({ evidence_quotes: [] })).success,
-    ).toBe(false)
+    ).toBe(true)
   })
 
   it('拒绝证据缺少 reason', () => {
@@ -93,6 +101,19 @@ describe('逐题评分 schema', () => {
     const payload = validEvaluation()
     ;(payload as { data: Record<string, unknown> }).data.score = 88
     expect(evaluationParseSchema.safeParse(payload).success).toBe(false)
+  })
+
+  it('prompt 明确写出「未作答时 evidence_quotes 必须为空数组」', () => {
+    const prompt = buildEvaluationPrompt({
+      jdJson: '{}',
+      resumeJson: '{}',
+      question: '说说你的项目',
+      questionType: 'project',
+      expectedPoints: [],
+      answer: '',
+    })
+    expect(prompt.system).toContain('未作答')
+    expect(prompt.system).toContain('[]')
   })
 
   it('拒绝缺少 schema_version', () => {
@@ -306,5 +327,56 @@ describe('prompt 组装', () => {
     expect(prompt.system).toContain('原样取自')
     expect(prompt.system).toContain('不得新增')
     expect(prompt.user).toContain('项目描述无任何量化结果')
+  })
+})
+
+/**
+ * 未作答规则（applyNoAnswerRule）—— 服务端兜底，不信任模型给的同情分。
+ *
+ * 背景：schema 曾强制 evidence_quotes ≥1，导致空回答无法产出合法输出，
+ * 评分 100% 失败（评测实测，见 evals/README.md「已知缺陷」）。
+ */
+describe('未作答规则', () => {
+  const base: EvaluationData = {
+    dimension_scores: {
+      job_match: 2,
+      professional: 1,
+      project_depth: 1,
+      logic: 2,
+      communication: 2,
+      motivation: 1,
+    },
+    evidence_quotes: [{ quote: '随便编的', reason: '编造的证据' }],
+    feedback: '',
+    better_answer: '',
+    reference_answer: '一段参考答案',
+  }
+
+  it('空回答：六维归零、证据清空、补上说明文案', () => {
+    const result = applyNoAnswerRule(base, '')
+
+    expect(isAllZero(result.dimension_scores)).toBe(true)
+    expect(result.evidence_quotes).toHaveLength(0)
+    expect(result.feedback).toBe(EMPTY_ANSWER_FEEDBACK)
+    expect(result.better_answer.length).toBeGreaterThan(0)
+  })
+
+  it('过短回答（如「不知道」）同样按未作答处理', () => {
+    const result = applyNoAnswerRule(base, '不知道')
+    expect(isAllZero(result.dimension_scores)).toBe(true)
+  })
+
+  it('模型已给出说明时保留原 feedback，不覆盖', () => {
+    const result = applyNoAnswerRule({ ...base, feedback: '候选人未作答，无法评估。' }, '')
+    expect(result.feedback).toBe('候选人未作答，无法评估。')
+  })
+
+  it('非空回答完全不动（避免误伤正常评分）', () => {
+    const answer = '我在项目里用两阶段提交保证一致性，P95 从 800ms 降到 220ms。'
+    const result = applyNoAnswerRule(base, answer)
+
+    expect(result.dimension_scores).toEqual(base.dimension_scores)
+    expect(result.evidence_quotes).toEqual(base.evidence_quotes)
+    expect(result.feedback).toBe(base.feedback)
   })
 })
