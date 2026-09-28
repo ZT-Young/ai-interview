@@ -19,6 +19,7 @@ import type { ToolResult } from '@/lib/ai/agent/tools'
 import { buildHintPrompt, PROMPT_VERSION } from '@/lib/ai/prompts/interview'
 import { hintParseSchema, normalizeFollowUp } from '@/lib/ai/schemas/interview'
 import { MAX_QUESTION_DEPTH } from '@/db/schema/enums'
+import { trackEvent } from '@/lib/observability/analytics'
 import { parseError } from '@/lib/parsing/errors'
 import type { LlmPort } from '@/lib/parsing/llm-port'
 import { parseWithRetry } from '@/lib/parsing/run'
@@ -310,6 +311,17 @@ export async function startInterview(
     content: `面试开始，共 ${mains.length} 道主问题。`,
   })
 
+  // 埋点：完面率的分母（docs/product/METRICS.md §2.2）
+  void trackEvent('interview_started', {
+    userId,
+    sessionId,
+    properties: {
+      question_count: mains.length,
+      has_resume: Boolean(session.resumeId),
+      has_job_jd: Boolean(session.jobJdId),
+    },
+  })
+
   return nextStep(userId, sessionId)
 }
 
@@ -378,6 +390,11 @@ async function nextStep(userId: string, sessionId: string): Promise<StepView> {
         role: 'system',
         type: 'system',
         content: '所有问题已处理，面试结束。',
+      })
+      // 自然结束：题目处理完（或跳过完）而结束，非用户主动点击
+      void trackInterviewCompleted(userId, sessionId, 'natural', {
+        total: mains.length,
+        answered: progress.answered,
       })
     }
 
@@ -769,6 +786,10 @@ export async function finishInterview(
       type: 'system',
       content: '用户结束了本次面试。',
     })
+    void trackInterviewCompleted(userId, sessionId, 'user', {
+      total: mains.length,
+      answered: progress.answered,
+    })
   }
 
   return {
@@ -782,6 +803,65 @@ export async function finishInterview(
 /* ------------------------------------------------------------------ *
  * 辅助
  * ------------------------------------------------------------------ */
+
+/**
+ * 埋点：面试完成（完面率的分子，docs/product/METRICS.md §3.1）。
+ *
+ * 跳过数与追问数**在这里自查**而不是由调用方传入：
+ * 两处调用点（自然结束 / 用户主动结束）拿到的上下文不同，
+ * 让调用方各自拼属性迟早会漏字段或口径不一致。
+ *
+ * 只记计数与时长，不记任何作答内容 —— 埋点的 PII 最小化硬要求。
+ */
+async function trackInterviewCompleted(
+  userId: string,
+  sessionId: string,
+  endedBy: 'natural' | 'user',
+  counts: { total: number; answered: number },
+): Promise<void> {
+  try {
+    const db = getDb()
+
+    const [skipRow] = await db
+      .select({ value: sql<number>`count(*)::int` })
+      .from(interviewMessages)
+      .where(and(eq(interviewMessages.sessionId, sessionId), eq(interviewMessages.type, 'skip')))
+
+    const [followUpRow] = await db
+      .select({ value: sql<number>`count(*)::int` })
+      .from(questions)
+      .where(and(eq(questions.sessionId, sessionId), sql`${questions.depth} > 0`))
+
+    const [session] = await db
+      .select({ startedAt: interviewSessions.startedAt, finishedAt: interviewSessions.finishedAt })
+      .from(interviewSessions)
+      .where(eq(interviewSessions.id, sessionId))
+      .limit(1)
+
+    const startedAt = session?.startedAt ?? null
+    const finishedAt = session?.finishedAt ?? null
+    const durationSec =
+      startedAt && finishedAt
+        ? Math.max(0, Math.round((finishedAt.getTime() - startedAt.getTime()) / 1000))
+        : null
+
+    await trackEvent('interview_completed', {
+      userId,
+      sessionId,
+      properties: {
+        total_main_questions: counts.total,
+        answered: counts.answered,
+        skipped: skipRow?.value ?? 0,
+        follow_up_count: followUpRow?.value ?? 0,
+        duration_sec: durationSec,
+        ended_by: endedBy,
+      },
+    })
+  } catch (error) {
+    // 埋点失败绝不影响面试流程
+    console.error('[analytics] 记录 interview_completed 失败', error)
+  }
+}
 
 async function progressOf(userId: string, sessionId: string) {
   const db = getDb()

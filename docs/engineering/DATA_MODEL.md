@@ -409,6 +409,36 @@ erDiagram
 
 **索引**：唯一索引 `consents_user_type_version_unique (user_id, consent_type, version)`。
 
+> 当前版本 `CURRENT_CONSENT_VERSION = 'v2'`：v2 起隐私政策新增行为埋点章节，
+> 属**处理目的变更**，须重新征得同意。该常量必须与
+> `lib/legal/documents.ts` 的 `LEGAL_VERSION` 保持一致。
+
+---
+
+### 3.13 `analytics_events` — 产品行为埋点
+
+> 契约见 [../product/METRICS.md §2](../product/METRICS.md)；本文档只给字段级定义。
+
+| 字段 | 类型 | 约束 | 默认 | 说明 |
+|---|---|---|---|---|
+| `id` | `uuid` | PK | `gen_random_uuid()` | — |
+| `user_id` | `uuid` | NULL, FK→`users.id` SET NULL | — | 软删除用户的记录保留，保证统计口径一致 |
+| `session_id` | `uuid` | NULL | — | 关联 `interview_sessions`；非会话类事件为空 |
+| `event_name` | `varchar(40)` | NOT NULL | — | 五个事件之一，见 METRICS.md §2.2 |
+| `occurred_at` | `timestamptz` | NOT NULL | `now()` | **服务端时间**，不用前端时间（防篡改） |
+| `properties` | `jsonb` | NULL | — | 事件属性，**禁止放 PII**；写入前过 `redactFields()` |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | 落库时刻 |
+
+**索引**：`analytics_events_event_idx (event_name, occurred_at)`、
+`analytics_events_user_idx (user_id, occurred_at)`、`analytics_events_session_idx (session_id)`。
+
+**两条硬约束**：
+
+1. **只增不改**：事件写入后不更新、不删除（与审计日志同策略）。
+   因此本表**没有** UPDATE / DELETE 路径，也不要为它写。
+2. **PII 最小化**：分数只记分段（`total_score_bucket`，如 `60-74`）不记精确值。
+   否则这张表会变成「用户能力画像」，凭空多出一个隐私面。
+
 ---
 
 ## 4. 索引策略总览

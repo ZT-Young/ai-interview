@@ -9,6 +9,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ApiError } from '@/lib/api/errors'
 import { requirePageUser } from '@/lib/api/guard'
+import { scoreBucket, trackEvent } from '@/lib/observability/analytics'
 import { listEvaluations } from '@/lib/services/handlers/evaluation-service'
 import { getReportBySession } from '@/lib/services/handlers/report-service'
 
@@ -54,6 +55,20 @@ export default async function ReportPage({ params }: { params: { id: string } })
   let evaluations: EvaluationItemView[] = []
   if (report && isUnlocked) {
     evaluations = (await listEvaluations(user.id, params.id)) as EvaluationItemView[]
+  }
+
+  // 埋点：报告打开率的分子（docs/product/METRICS.md §2.2）
+  // 分数只记分段不记精确值，避免事件表变成「用户能力画像」
+  if (report) {
+    void trackEvent('report_viewed', {
+      userId: user.id,
+      sessionId: params.id,
+      properties: {
+        report_id: report.id ?? null,
+        is_unlocked: isUnlocked,
+        total_score_bucket: scoreBucket(report.totalScore ?? null),
+      },
+    })
   }
 
   if (sessionMissing) {

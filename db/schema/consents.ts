@@ -32,5 +32,11 @@ export const consents = pgTable(
 export type Consent = typeof consents.$inferSelect
 export type NewConsent = typeof consents.$inferInsert
 
-/** 当前条款版本；条款内容变更时必须同步更新此常量以重新征得同意 */
-export const CURRENT_CONSENT_VERSION = 'v1'
+/**
+ * 当前条款版本；条款内容变更时必须同步更新此常量以重新征得同意。
+ *
+ * v2：隐私政策新增行为埋点章节（处理目的变更），必须与
+ * `lib/legal/documents.ts` 的 `LEGAL_VERSION` 保持一致 —— 两处不一致会出现
+ * 「用户同意的是 v1、展示的却是 v2」的合规缺口。
+ */
+export const CURRENT_CONSENT_VERSION = 'v2'

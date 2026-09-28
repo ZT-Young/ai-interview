@@ -28,6 +28,12 @@ export function RedeemForm() {
     setSuccess(null)
 
     try {
+      // 付费意愿埋点（唯一的前端上报事件，docs/product/METRICS.md §2.2）。
+      // fire-and-forget：埋点失败绝不能阻断兑换，且它不参与任何权益判定。
+      void api
+        .post('/api/analytics/checkout-click', { productId: 'redeem_code', sourcePage: 'redeem' })
+        .catch(() => undefined)
+
       const result = await api.post<{
         product: { id: string; name: string }
         remainingUsages: number

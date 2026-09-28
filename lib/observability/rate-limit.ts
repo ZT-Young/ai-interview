@@ -108,6 +108,9 @@ export const RATE_LIMIT_RULES = {
   'payments.callback': { windowMs: 60_000, max: 120 },
   'ai.upload': { windowMs: 60_000, max: 20 },
   'ai.generate': { windowMs: 60_000, max: 30 },
+  // 埋点是观测而非业务，额度可以宽一些；但仍然限流，
+  // 否则这个路由能被用来刷事件表（事件只增不删）
+  'analytics.checkout_click': { windowMs: 60_000, max: 60 },
 } as const
 
 export type RateLimitScope = keyof typeof RATE_LIMIT_RULES

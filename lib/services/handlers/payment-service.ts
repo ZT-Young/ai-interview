@@ -4,6 +4,7 @@ import { getDb } from '@/db/client'
 import { auditLogs, payments, reports, users } from '@/db/schema'
 import { conflict, notFound, validationError } from '@/lib/api/errors'
 import { isFreeMode } from '@/lib/config/free-mode'
+import { trackEvent } from '@/lib/observability/analytics'
 import { getProduct, type Product } from '@/lib/payments/products'
 import { newProviderOrderId } from '@/lib/payments/provider'
 
@@ -129,7 +130,22 @@ export interface GrantResult {
 export async function grantEntitlement(paymentId: string): Promise<GrantResult> {
   const db = getDb()
 
-  return db.transaction(async (tx) => {
+  /**
+   * 埋点所需字段：必须在事务内取到，但**绝不能在事务内写埋点** ——
+   * 那会把一次观测写入变成事务的一部分，埋点失败会导致权益发放回滚。
+   * 因此这里只把字段带出来，事务成功提交后再 fire-and-forget。
+   */
+  // 显式断言是必要的：赋值发生在事务回调里，TS 看不见，
+  // 会把变量一路 narrow 成 null，导致下面的 if 分支被推断为 never。
+  let grantedSnapshot = null as {
+    userId: string
+    amountCents: number
+    unlockType: string
+    provider: string | null
+    reportId: string | null
+  } | null
+
+  const result = await db.transaction(async (tx) => {
     const rows = await tx.select().from(payments).where(eq(payments.id, paymentId)).limit(1)
     const payment = rows[0]
     if (!payment) return { granted: false, reason: 'payment_not_found' as const }
@@ -208,12 +224,39 @@ export async function grantEntitlement(paymentId: string): Promise<GrantResult> 
       }),
     })
 
+    grantedSnapshot = {
+      userId: payment.userId,
+      amountCents: payment.amountCents,
+      unlockType: payment.unlockType,
+      provider: payment.provider ?? null,
+      reportId: payment.reportId ?? null,
+    }
+
     return {
       granted: true,
       paymentId: payment.id,
       reportId: payment.reportId,
     }
   })
+
+  // 付费率分子与营收口径（docs/product/METRICS.md §2.2）。
+  // 只在服务端记录：前端上报的付费事件可被伪造，不能作为权益或营收依据。
+  if (grantedSnapshot) {
+    void trackEvent('payment_succeeded', {
+      userId: grantedSnapshot.userId,
+      properties: {
+        // payments 表没有独立的 product_id 字段；unlock_type + amount_cents
+        // 已能唯一定位售卖内容，用它作为 product_id 的等价物
+        product_id: grantedSnapshot.unlockType,
+        amount_cents: grantedSnapshot.amountCents,
+        unlock_type: grantedSnapshot.unlockType,
+        provider: grantedSnapshot.provider,
+        report_id: grantedSnapshot.reportId,
+      },
+    })
+  }
+
+  return result
 }
 
 /* ------------------------------------------------------------------ *

@@ -20,7 +20,7 @@
 
 ## 2. 事件定义
 
-### 2.1 事件表结构（待实现）
+### 2.1 事件表结构（已实现：`db/schema/analytics-events.ts`，迁移 0008）
 
 ```
 analytics_events
@@ -244,14 +244,33 @@ ORDER BY 4 DESC NULLS LAST;
 
 ---
 
-## 6. 实现清单（本轮不改代码，确认后执行）
+## 6. 实现状态（1–4、6 已完成；5、7 待做）
 
-| # | 待实现 | 落点 |
-|---|---|---|
-| 1 | `analytics_events` 表 + 迁移 | `db/schema/analytics-events.ts`、`db/migrations/0007_*` |
-| 2 | 事件写入与脱敏 | `lib/analytics/{events,track}.ts`（复用 `redactFields`） |
-| 3 | 服务端触发点接入 | `start` / `finish` 路由、报告页、`grantEntitlement` |
-| 4 | 前端上报接口（仅 `pay_checkout_clicked`） | `POST /api/analytics/events` |
-| 5 | 指标查询与看板 | `app/api/admin/metrics`、`app/admin/metrics` |
-| 6 | 隐私政策更新 + 版本号提升 | `lib/legal/documents.ts`（`LEGAL_VERSION` → v2） |
-| 7 | 测试 | 事件脱敏断言、`payment_succeeded` 仅服务端可写、删号后匿名化 |
+| # | 项目 | 落点 | 状态 |
+|---|---|---|---|
+| 1 | `analytics_events` 表 + 迁移 | `db/schema/analytics-events.ts`、`db/migrations/0008_*` | ✅ 已建表 |
+| 2 | 事件写入与脱敏 | `lib/observability/analytics.ts`（复用 `redactFields`） | ✅ 已实现 |
+| 3 | 服务端触发点接入 | `startInterview` / `finishInterview` / 报告页 / `grantEntitlement` | ✅ 已接入 |
+| 4 | 前端上报接口（仅 `pay_checkout_clicked`） | `POST /api/analytics/checkout-click` | ✅ 已实现（免费模式下无付费入口，实际不触发） |
+| 5 | 指标查询与看板 | `app/api/admin/metrics`、`app/admin/metrics` | ⬜ **未做** —— 目前只能直接查 SQL（§3 给了口径） |
+| 6 | 隐私政策更新 + 版本号提升 | `lib/legal/documents.ts`（`LEGAL_VERSION` v1 → v2） | ✅ 已提版，需重新征得同意 |
+| 7 | 测试 | 事件脱敏断言、`payment_succeeded` 仅服务端可写 | ⬜ **未做** —— 埋点目前无测试覆盖 |
+
+**关于第 5 项**：没有看板不影响埋点价值，§3 的 SQL 口径可以直接在数据库上跑；
+但内测期间每次要看数都得手敲 SQL，容易拖慢反馈节奏，建议内测前补掉。
+
+**关于第 7 项**：埋点现在是无测试覆盖的。风险点很具体——
+properties 里一旦被误塞进简历原文或作答内容，就会把 PII 写进一张**只增不删**的表，
+事后无法修正。补测试时应优先断言这一点。
+
+### 6.1 免费模式下的口径调整
+
+产品改为全功能免费后，§3.3 付费率与 §3.4 付费意愿**恒为 0，不再是指标**。
+北极星应换成：
+
+- **完面率**（§3.1）：`interview_completed` / `interview_started` —— 现在有数据了
+- **报告打开率**（§3.2）：`report_viewed` / `interview_completed`
+- **复练率**（需新增事件或按 `interview_started` 的用户数去重统计）
+
+`pay_checkout_clicked` 与 `payment_succeeded` 的代码保留但不触发，
+与支付模块「保留代码、关闭门禁」的做法一致。

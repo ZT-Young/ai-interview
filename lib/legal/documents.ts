@@ -47,8 +47,15 @@ export const LEGAL_SLUGS: Record<LegalType, string> = {
   ai_disclosure: 'ai-disclosure',
 }
 
-/** 当前法律文本版本；与 db/schema/consents.ts 的 CURRENT_CONSENT_VERSION 保持一致 */
-export const LEGAL_VERSION = 'v1'
+/**
+ * 当前法律文本版本；与 db/schema/consents.ts 的 CURRENT_CONSENT_VERSION 保持一致。
+ *
+ * v2（行为埋点）：隐私政策新增「产品使用统计」章节 —— 这属于**处理目的变更**，
+ * 按 AGENTS.md §7 C1/C2 必须重新征得同意。因此版本号从 v1 提到 v2，
+ * 已有用户下次登录会被要求重新勾选（consents.version 与这里对齐）。
+ * 两处必须同时改，否则会出现「用户同意的是 v1，展示的是 v2」的不一致。
+ */
+export const LEGAL_VERSION = 'v2'
 
 export const LEGAL_DOCUMENTS: Record<LegalType, LegalDocument> = {
   terms: {
@@ -124,7 +131,18 @@ export const LEGAL_DOCUMENTS: Record<LegalType, LegalDocument> = {
         ],
       },
       {
-        heading: '三、AI 处理说明',
+        heading: '三、产品使用统计（行为埋点）',
+        paragraphs: [
+          '我们会记录你在本产品内的**操作行为**用于改进产品，例如：开始面试、完成面试、查看报告。',
+          '记录内容是**行为与计数**，不含你的简历原文、作答内容、邮箱或令牌。'
+            + '报告总分只记录分段区间（如 60-74），不记录精确分数，以避免形成对你个人能力的画像。',
+          '这些记录只增不改、不做删除（与审计日志同一策略），用于统计「有多少人完成了面试」'
+            + '这类整体指标，不用于对你个人进行评价或推荐。',
+          '涉及付费的行为只在服务端记录，不采用浏览器上报作为权益依据。',
+        ],
+      },
+      {
+        heading: '四、AI 处理说明',
         paragraphs: [
           '简历与岗位描述的部分内容会发送给第三方大语言模型服务用于解析与出题；作答内容会用于评分与生成反馈。',
           '我们在发送前尽量减少无关的个人敏感信息。',
@@ -132,14 +150,14 @@ export const LEGAL_DOCUMENTS: Record<LegalType, LegalDocument> = {
         ],
       },
       {
-        heading: '四、保存期限',
+        heading: '五、保存期限',
         paragraphs: [
           '账号存续期间保留上述数据；你删除账号后，我们会立即停止提供访问并删除简历原件，'
             + '并按法律与对账要求保留不含简历内容的必要记录，到期后彻底清除。',
         ],
       },
       {
-        heading: '五、你的权利',
+        heading: '六、你的权利',
         paragraphs: [
           '**导出**：在「账户设置」中一键导出你的数据副本（JSON）。',
           '**删除**：在「账户设置」中删除账号，删除后所有登录会话立即失效，简历原件从对象存储中删除。',
@@ -147,7 +165,7 @@ export const LEGAL_DOCUMENTS: Record<LegalType, LegalDocument> = {
         ],
       },
       {
-        heading: '六、数据安全',
+        heading: '七、数据安全',
         paragraphs: [
           '密码使用加盐慢哈希存储；会话令牌在数据库中仅保存哈希值。',
           '传输层使用 HTTPS；对象存储中的简历原件由服务端加密保存。',

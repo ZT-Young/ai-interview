@@ -357,7 +357,7 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 | `app/` | 路由与页面 | 页面（`page.tsx`）、接口（`api/**/route.ts`）、布局、全局样式 | 业务规则、prompt、数据库查询 |
 | `components/` | UI 组件 | `ui/` 无业务语义的原子组件；`features/<领域>/` 带业务的组件 | 数据获取、接口调用逻辑 |
 | `lib/` | 全部业务逻辑 | AI、解析、存储、支付、鉴权、业务用例、校验 | React 组件、页面 |
-| `db/` | 数据库 | Drizzle schema（12 张表）、迁移 SQL、连接池 | 业务规则 |
+| `db/` | 数据库 | Drizzle schema（13 张表）、迁移 SQL、连接池 | 业务规则 |
 | `tests/` | 测试 | `unit/`（可离线）、`integration/`（需数据库）、`fixtures/`、`helpers/` | — |
 | `e2e/` | 端到端测试 | Playwright 用例、seed、全局 setup | 单元测试 |
 | `scripts/` | 本地与 CI 脚本 | 开发栈启动、内嵌 Postgres、secret 检查、公开前审计 | 被应用 import 的代码 |
@@ -403,7 +403,7 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 │   ├── observability/          # logger · error-monitor · rate-limit
 │   ├── constants/ · legal/ · asr/
 ├── db/
-│   ├── schema/                 # 12 张表（enums 为单一真源）
+│   ├── schema/                 # 13 张表（enums 为单一真源）
 │   ├── migrations/             # Drizzle 迁移（文件名由工具生成，见该目录 README）
 │   └── client.ts               # 惰性连接（导入不建连，缺 DATABASE_URL 也能 build）
 ├── tests/
@@ -819,7 +819,7 @@ ADMIN_VIEW_RESUME_CONTENT="true"   # 必须严格为 "true"，不接受 1/TRUE
 
 ---
 
-## 数据模型（12 张表）
+## 数据模型（13 张表）
 
 业务表 9 张（`users`、`resumes`、`job_jds`、`interview_sessions`、`questions`、`answers`、`evaluations`、`reports`、`payments`）
 \+ 支撑表 3 张（`sessions` 登录会话、`audit_logs` 审计日志、`consents` 同意记录）。
