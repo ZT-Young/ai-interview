@@ -9,9 +9,10 @@
 
 | 路由 | 页面 | 访问控制 | 状态 |
 |---|---|---|---|
-| `/` | 工作台首页（未登录显示入口，已登录显示概览） | 公开 | ✅ |
-| `/login` | 登录 | 未登录可访问，已登录重定向 `/` | ✅ |
-| `/register` | 注册（含知情同意勾选） | 同上 | ✅ |
+| `/` | **AI 面试工作台**（新建面试主入口、账户概览、最近面试） | **需登录**（未登录重定向 `/login`） | ✅ |
+| `/intro` | 产品落地页（Hero · 三步 · 特性 · 报告预览） | 公开 | ✅ |
+| `/login` | 登录（独立全屏认证页） | 未登录可访问，已登录重定向 `/` | ✅ |
+| `/register` | 注册（含知情同意勾选） | 同上；**注册成功跳 `/login?registered=1`**，不自动进产品 | ✅ |
 | `/resumes` | 简历列表 | 需登录 | ✅ |
 | `/resumes/new` | 上传简历 | 需登录 | ✅ |
 | `/resumes/[id]/review` | 简历解析确认与修改 | 需登录 + 归属校验 | ✅ |
@@ -31,8 +32,10 @@
 
 **布局分组**
 
-- `app/(auth)/layout.tsx`：居中窄栏，未登录可访问。
+- `app/(auth)/layout.tsx`：**独立全屏分栏**——左品牌面板（大屏）/ 右表单区（窄屏自动收敛为单栏），未登录可访问。
+  登录与注册是产品的第一入口（`/` 会重定向到 `/login`），因此左栏需独立承担「这是什么产品」的说明职责。
 - `app/(app)/layout.tsx`：**服务端守卫**——未登录 `redirect('/login')`；顶部导航（简历 / 岗位 JD / 面试）。
+  `/` 的工作台页即位于本分组（`app/(app)/page.tsx`），因此 `/` 天然受此守卫保护。
   > 页面守卫必须用 `optionalUser()` + `redirect()`，**不可**用 `requireUser()`：后者抛的是 API 层 401，在页面渲染中会变成 500（详见 README「已知事项」）。
 
 **移动端**：所有页面在 375px 宽度下不得横向滚动；面试房间为**移动优先**设计。
@@ -63,7 +66,7 @@
 
 | 目录 | 组件 | 职责 |
 |---|---|---|
-| `auth/` | `login-form` / `register-form` / `logout-button` | 认证交互 |
+| `auth/` | `login-form` / `register-form` / `logout-button` | 认证交互（双通道注册 / 双模式登录，见 §2.3） |
 | `parse/` | `resume-upload-form` / `jd-text-form` / `resume-review-form` / `jd-review-form` / `field-editors` | 上传与解析结果编辑 |
 | `plan/` | `plan-view` / `match-panel` / `create-session-form` | 计划展示、匹配分析、创建会话 |
 | `interview/` | `interview-console` | **面试房间主容器**（见 §4） |
@@ -79,8 +82,35 @@
 | `membership/` | `membership-view` | 免费次数、权益、订单入口（见 §6） |
 | `admin/` | `admin-nav` | 后台子页导航（仅管理员布局使用） |
 | `admin/` | `credits-adjust-form` | 手动调整免费次数（写入审计日志） |
+| `settings/` | `username-form` | 修改用户名（默认「用户 + 手机尾号四位」，可改） |
+| `settings/` | `profile-form` / `data-rights-panel` | 昵称头像、数据导出与删除 |
 
 > 历史记录使用 `/sessions` 页面 + `session-service.listSessions`，无独立容器组件（见 §7）。
+>
+> `email` 已可空（手机号注册时无邮箱），因此 `settings/data-rights-panel` 的删除确认
+> 目标为 `email ?? username`，导航与后台列表的展示一律 `email ?? username ?? '—'`。
+
+### 2.3 注册与登录形态
+
+**注册（`/register`）双通道 Tab**
+
+| 通道 | 字段 | 说明 |
+|---|---|---|
+| 邮箱 | 邮箱 + 密码（≥8 位）+ 同意条款 | 与 V1 初期一致 |
+| 手机号 | 手机号 + 验证码 + **可选**密码 + 同意条款 | 验证码固定 `8888`（开发态，见 README 已知事项）；不填密码也可注册，注册成功即写 `phone_verified_at` |
+
+两条通道注册成功后**都跳 `/login?registered=1`**，不自动进产品（页面顶部展示「注册成功」提示条）。
+
+**登录（`/login`）单账号框 + 双模式 Tab**
+
+- 账号框为**统一标识**：邮箱 / 手机号 / 用户名填同一个框，服务端按
+  DATA_MODEL §3.1 的解析顺序判定查哪一列；**前端不做格式预判**，避免暴露「哪种标识存在」。
+- 「密码」模式：账号无密码哈希（纯验证码注册）时提示改用验证码登录。
+- 「验证码」模式：要求账号为手机号，发送验证码走 `POST /api/auth/sms-code`（60 秒内 5 次限流）。
+
+**用户名**：默认「用户 + 手机尾号四位」，登录后可在 `/settings` 自行修改。
+修改走 `PATCH /api/auth/me`，用户名被占用返回 409；用户名不允许与手机号同格式
+（否则登录时会按手机号解析而永远查不到，见 DATA_MODEL §3.1）。
 
 ---
 

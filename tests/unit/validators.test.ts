@@ -1,22 +1,31 @@
 import { describe, expect, it } from 'vitest'
 
-import { loginSchema, registerSchema, updateProfileSchema } from '@/lib/validators/auth'
+import {
+  loginSchema,
+  phoneSchema,
+  registerSchema,
+  updateProfileSchema,
+  usernameSchema,
+} from '@/lib/validators/auth'
 import { createResumeSchema, updateResumeSchema } from '@/lib/validators/resume'
 import { createJobJdSchema } from '@/lib/validators/job-jd'
 import { createSessionSchema } from '@/lib/validators/session'
 
-describe('注册入参校验', () => {
+describe('注册入参校验（邮箱通道）', () => {
   it('接受合法输入并规范化邮箱为小写', () => {
     const result = registerSchema.parse({
+      channel: 'email',
       email: '  User@Example.COM ',
       password: 'password123',
       acceptTerms: true,
     })
-    expect(result.email).toBe('user@example.com')
+    expect(result.channel).toBe('email')
+    expect(result.channel === 'email' && result.email).toBe('user@example.com')
   })
 
   it('拒绝未同意条款的注册（AGENTS.md §7 C1）', () => {
     const result = registerSchema.safeParse({
+      channel: 'email',
       email: 'a@b.com',
       password: 'password123',
       acceptTerms: false,
@@ -25,34 +34,135 @@ describe('注册入参校验', () => {
   })
 
   it('拒绝缺少 acceptTerms 的注册', () => {
-    expect(registerSchema.safeParse({ email: 'a@b.com', password: 'password123' }).success).toBe(
-      false,
-    )
+    expect(
+      registerSchema.safeParse({
+        channel: 'email',
+        email: 'a@b.com',
+        password: 'password123',
+      }).success,
+    ).toBe(false)
   })
 
   it('拒绝过短密码', () => {
     expect(
-      registerSchema.safeParse({ email: 'a@b.com', password: 'short', acceptTerms: true }).success,
+      registerSchema.safeParse({
+        channel: 'email',
+        email: 'a@b.com',
+        password: 'short',
+        acceptTerms: true,
+      }).success,
     ).toBe(false)
   })
 
   it('拒绝非法邮箱', () => {
     for (const email of ['not-an-email', 'a@', '@b.com', '']) {
       expect(
-        registerSchema.safeParse({ email, password: 'password123', acceptTerms: true }).success,
+        registerSchema.safeParse({
+          channel: 'email',
+          email,
+          password: 'password123',
+          acceptTerms: true,
+        }).success,
       ).toBe(false)
     }
   })
 })
 
-describe('登录入参校验', () => {
-  it('登录不要求 acceptTerms', () => {
-    const result = loginSchema.safeParse({ email: 'a@b.com', password: 'x' })
+describe('注册入参校验（手机号通道）', () => {
+  it('接受手机号 + 验证码，密码可选', () => {
+    const result = registerSchema.safeParse({
+      channel: 'phone',
+      phone: '13800138000',
+      code: '8888',
+      acceptTerms: true,
+    })
     expect(result.success).toBe(true)
   })
 
+  it('接受同时设置密码（之后可用手机号 + 密码登录）', () => {
+    const result = registerSchema.safeParse({
+      channel: 'phone',
+      phone: '13800138000',
+      code: '8888',
+      password: 'password123',
+      acceptTerms: true,
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('拒绝非法手机号', () => {
+    for (const phone of ['12345', '23800138000', '1380013800a', '']) {
+      expect(
+        registerSchema.safeParse({ channel: 'phone', phone, code: '8888', acceptTerms: true })
+          .success,
+      ).toBe(false)
+    }
+  })
+
+  it('拒绝非数字验证码', () => {
+    expect(
+      registerSchema.safeParse({
+        channel: 'phone',
+        phone: '13800138000',
+        code: 'abcd',
+        acceptTerms: true,
+      }).success,
+    ).toBe(false)
+  })
+})
+
+describe('登录入参校验', () => {
+  it('密码模式：接受任意标识且不要求 acceptTerms', () => {
+    expect(
+      loginSchema.safeParse({ mode: 'password', identifier: 'a@b.com', password: 'x' }).success,
+    ).toBe(true)
+  })
+
+  it('验证码模式：接受手机号 + 验证码', () => {
+    expect(
+      loginSchema.safeParse({ mode: 'code', identifier: '13800138000', code: '8888' }).success,
+    ).toBe(true)
+  })
+
   it('拒绝空密码（避免无意义查询）', () => {
-    expect(loginSchema.safeParse({ email: 'a@b.com', password: '' }).success).toBe(false)
+    expect(
+      loginSchema.safeParse({ mode: 'password', identifier: 'a@b.com', password: '' }).success,
+    ).toBe(false)
+  })
+
+  it('拒绝缺少 mode（无法判断凭证类型）', () => {
+    expect(loginSchema.safeParse({ identifier: 'a@b.com', password: 'x' }).success).toBe(false)
+  })
+})
+
+describe('用户名校验', () => {
+  it('接受中文 + 数字', () => {
+    expect(usernameSchema.safeParse('用户1234').success).toBe(true)
+  })
+
+  it('拒绝过短与超长', () => {
+    expect(usernameSchema.safeParse('用').success).toBe(false)
+    expect(usernameSchema.safeParse('用'.repeat(31)).success).toBe(false)
+  })
+
+  it('拒绝含特殊字符', () => {
+    expect(usernameSchema.safeParse('用户@123').success).toBe(false)
+  })
+
+  it('拒绝手机号格式（否则登录时被误判为手机号，导致无法登录）', () => {
+    expect(usernameSchema.safeParse('13800138000').success).toBe(false)
+  })
+})
+
+describe('手机号校验', () => {
+  it('接受合法手机号', () => {
+    expect(phoneSchema.safeParse('13800138000').success).toBe(true)
+  })
+
+  it('拒绝非 1 开头或位数不对', () => {
+    for (const phone of ['23800138000', '1380013800', '138001380000']) {
+      expect(phoneSchema.safeParse(phone).success).toBe(false)
+    }
   })
 })
 

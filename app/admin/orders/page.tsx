@@ -68,7 +68,7 @@ export default async function AdminOrdersPage() {
             <tbody>
               {orders.map((order) => (
                 <tr key={order.id} className="border-b last:border-0">
-                  <td className="py-2 pr-4">{order.userEmail}</td>
+                  <td className="py-2 pr-4">{order.userEmail ?? order.userName ?? '—'}</td>
                   <td className="py-2 pr-4">{UNLOCK_LABELS[order.unlockType] ?? order.unlockType}</td>
                   <td className="py-2 pr-4 font-mono text-xs">{order.productId ?? '—'}</td>
                   <td className="py-2 pr-4 text-right tabular-nums">

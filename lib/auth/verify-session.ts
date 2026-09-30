@@ -14,7 +14,11 @@ import { hashSessionToken, safeCompareHash } from './session'
 
 export interface AuthenticatedUser {
   id: string
-  email: string
+  /** 纯手机号注册的用户没有邮箱 */
+  email: string | null
+  phone: string | null
+  /** 用户名：登录标识之一，也是展示用的默认名称 */
+  username: string | null
   name: string | null
   avatarUrl: string | null
   membership: User['membership']
@@ -30,6 +34,8 @@ function toAuthenticatedUser(row: User): AuthenticatedUser {
   return {
     id: row.id,
     email: row.email,
+    phone: row.phone,
+    username: row.username,
     name: row.name,
     avatarUrl: row.avatarUrl,
     membership: row.membership,

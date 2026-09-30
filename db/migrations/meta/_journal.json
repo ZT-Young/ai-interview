@@ -64,6 +64,13 @@
       "when": 1790596829403,
       "tag": "0008_moaning_annihilus",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790765737847,
+      "tag": "0009_woozy_giant_man",
+      "breakpoints": true
     }
   ]
 }

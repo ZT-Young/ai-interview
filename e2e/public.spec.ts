@@ -12,9 +12,10 @@ import { expect, test } from '@playwright/test'
  */
 
 test.describe('冒烟（不依赖数据库与外部服务）', () => {
-  test('首页可访问并渲染产品标题', async ({ page }) => {
-    await page.goto('/')
-    await expect(page.getByRole('heading', { level: 1, name: 'AI 模拟面试' })).toBeVisible()
+  // 注意：产品落地页已迁到 `/intro`（`/` 现在是登录后的工作台，未登录会重定向到 /login）。
+  test('产品落地页可访问并渲染标题', async ({ page }) => {
+    await page.goto('/intro')
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('先练一遍')
   })
 
   test('未登录访问受限页面会跳转到登录页', async ({ page }) => {
@@ -33,9 +34,9 @@ test.describe('冒烟（不依赖数据库与外部服务）', () => {
     await expect(page.getByRole('button', { name: /注册/ })).toBeVisible()
   })
 
-  test('移动端 H5：首页在 375px 宽不出现横向滚动', async ({ page }) => {
+  test('移动端 H5：落地页在 375px 宽不出现横向滚动', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 720 })
-    await page.goto('/')
+    await page.goto('/intro')
 
     const hasHorizontalScroll = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
@@ -45,6 +46,12 @@ test.describe('冒烟（不依赖数据库与外部服务）', () => {
 })
 
 test.describe('未登录访问控制', () => {
+  test('未登录访问根路径会重定向到登录页', async ({ page }) => {
+    await page.goto('/')
+    await expect(page).toHaveURL(/\/login/)
+    await expect(page.getByRole('heading', { name: '登录' })).toBeVisible()
+  })
+
   test('未登录访问历史记录与会员页会跳转登录', async ({ page }) => {
     await page.goto('/sessions')
     await expect(page).toHaveURL(/\/login/)

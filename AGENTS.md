@@ -102,7 +102,7 @@ C 端求职者粘贴目标岗位 JD、上传个人简历，AI 扮演面试官进
 | 前端 | Next.js 14 App Router + TypeScript + Tailwind CSS + shadcn/ui | `app/`、`components/` |
 | 后端 | Next.js Route Handlers / Server Actions | 复杂 AI 逻辑**必须**放 `lib/ai` |
 | 数据库 | PostgreSQL + Drizzle ORM | `db/`（schema、migration） |
-| 鉴权 | **自建**：邮箱 + 密码（scrypt）+ 数据库会话 + HttpOnly Cookie | `lib/auth/`；§9.2 的 Auth.js 选项已弃用 |
+| 鉴权 | **自建**：邮箱 / 手机号 / 用户名 + 密码（scrypt）或短信验证码 + 数据库会话 + HttpOnly Cookie | `lib/auth/`；§9.2 的 Auth.js 选项已弃用 |
 | 文件存储 | S3 兼容对象存储（Cloudflare R2 / AWS S3 / MinIO） | 端口在 `lib/storage/`；未配 S3 时**仅开发环境**回退本地文件系统，生产环境直接 503 |
 | LLM | OpenAI 兼容接口，支持 DeepSeek / Qwen / GPT | `lib/ai`，模型名走环境变量 |
 | ASR | Whisper API 或国内 ASR（选型 TBD） | `lib/asr/`，与 LLM 同层抽象；未配置时返回 503，**不伪造转写文字** |
@@ -229,7 +229,7 @@ C 端求职者粘贴目标岗位 JD、上传个人简历，AI 扮演面试官进
 
 ### 9.2 待澄清事项（未定，禁止自行选型）
 
-- [x] 鉴权：**已定为自建**（邮箱+密码 scrypt + 数据库会话 + HttpOnly Cookie），见 §4
+- [x] 鉴权：**已定为自建**（邮箱/手机号/用户名 + 密码 scrypt 或短信验证码 + 数据库会话 + HttpOnly Cookie），见 §4
 - [x] 商业模式：**已定为 V1 全功能免费**（`FREE_MODE` 默认开启，支付代码保留、门禁关闭），见 §3.3
 - [ ] 支付渠道与解锁模型（单次解锁 / 会员 / 次数包）的具体组合
       —— **仅在决定恢复收费时才需要定**；当前免费模式下不阻塞开发

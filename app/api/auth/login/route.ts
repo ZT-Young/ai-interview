@@ -6,8 +6,11 @@ import { SESSION_COOKIE_NAME, sessionCookieOptions } from '@/lib/auth/session'
 import { loginSchema } from '@/lib/validators/auth'
 
 /**
- * POST /api/auth/login —— 邮箱 + 密码登录。
- * 账号不存在与密码错误的响应完全一致（防账号枚举，见 auth-service.login）。
+ * POST /api/auth/login —— 用户名 / 手机号 / 邮箱 + 密码或验证码登录。
+ *
+ * `identifier` 由服务端判定类型（先手机号、再邮箱、其余当用户名）；
+ * `mode` 决定凭证：`password` 或 `code`。
+ * 账号不存在与凭证错误的响应完全一致（防账号枚举，见 auth-service.login）。
  */
 export const POST = apiHandler(async (request: Request) => {
   // 限流：防暴力破解（按 IP）。见 lib/observability/rate-limit.ts

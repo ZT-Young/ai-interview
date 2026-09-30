@@ -1,12 +1,26 @@
-import { apiHandler, ok } from '@/lib/api/respond'
+import { apiHandler, ok, parseJsonBody } from '@/lib/api/respond'
 import { requestContext, requireUser } from '@/lib/api/guard'
 import { deleteUserAccount } from '@/lib/services/handlers/data-rights-service'
+import { updateProfile } from '@/lib/services/handlers/auth-service'
 import { SESSION_COOKIE_NAME } from '@/lib/auth/session'
+import { updateProfileSchema } from '@/lib/validators/auth'
 
 /** GET /api/auth/me —— 当前登录用户；未登录返回 401。 */
 export const GET = apiHandler(async () => {
   const user = await requireUser()
   return ok({ user })
+})
+
+/**
+ * PATCH /api/auth/me —— 更新个人资料（昵称 / 头像 / **用户名**）。
+ *
+ * 用户名可作登录标识，因此必须唯一；冲突时服务层抛 409（不泄露占用者信息）。
+ */
+export const PATCH = apiHandler(async (request: Request) => {
+  const user = await requireUser()
+  const input = await parseJsonBody(request, updateProfileSchema)
+  const updated = await updateProfile(user.id, input)
+  return ok({ user: updated })
 })
 
 /**

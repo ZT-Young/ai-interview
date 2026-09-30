@@ -104,6 +104,11 @@ export const defaultRateLimitStore: RateLimitStore = new InMemoryRateLimitStore(
 export const RATE_LIMIT_RULES = {
   'auth.login': { windowMs: 60_000, max: 10 },
   'auth.register': { windowMs: 60_000, max: 5 },
+  /**
+   * 短信验证码：即便当前是「固定 8888」的模拟发送也要限流 ——
+   * 否则这个路由可被用来刷请求（接入真实短信后更是直接刷资费）。
+   */
+  'auth.sms_code': { windowMs: 60_000, max: 5 },
   'payments.redeem': { windowMs: 60_000, max: 10 },
   'payments.callback': { windowMs: 60_000, max: 120 },
   'ai.upload': { windowMs: 60_000, max: 20 },

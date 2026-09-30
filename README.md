@@ -50,7 +50,7 @@
 | 前端 | Next.js 14 (App Router) + TypeScript + Tailwind CSS + shadcn/ui |
 | 后端 | Next.js Route Handlers，业务规则在 `lib/services`，AI 逻辑在 `lib/ai` |
 | 数据库 | PostgreSQL + Drizzle ORM |
-| 鉴权 | **自建**：邮箱 + 密码（scrypt）+ 数据库会话 + HttpOnly Cookie |
+| 鉴权 | **自建**：邮箱 / 手机号 / 用户名 + 密码（scrypt）或短信验证码 + 数据库会话 + HttpOnly Cookie |
 | LLM | OpenAI 兼容接口（DeepSeek / Qwen / GPT） |
 | ASR | Whisper API 或国内 ASR（选型 TBD） |
 | 文件存储 | S3 兼容对象存储（选型 TBD） |
@@ -155,17 +155,32 @@ pnpm dev            # 已有数据库时
 pnpm dev:all        # 数据库 + 迁移 + dev server 一条命令
 ```
 
-打开 <http://localhost:3000> → 注册 → 自动登录进入工作台。
+打开 <http://localhost:3000> → 未登录会先到 `/login` → 注册 → 再登录一次 → 进入 AI 面试工作台。
+（公开的产品介绍页在 `/intro`，无需登录即可访问。）
 
 > 开发模式产物目录是 `.next-dev`（生产构建用 `.next`），两者互不干扰，
 > 因此可以在 dev server 运行时执行 `pnpm build` / `pnpm verify`，不会打断 dev。
 
 ### 5. 验收：注册与登录
 
-1. 访问 `/register`，填写邮箱与密码（≥8 位），勾选同意条款 → 应跳转首页并显示「欢迎回来」
-2. 点击「退出登录」→ 跳到 `/login`
-3. 用同一账号登录 → 应重新进入工作台
-4. 访问 `/api/auth/me` → 返回当前用户 JSON；退出后访问应返回 `401`
+**邮箱通道**
+
+1. 访问 `/register`，填写邮箱与密码（≥8 位），勾选同意条款 → 应跳转 `/login` 并显示「注册成功，请用刚才的邮箱与密码登录」
+2. 用该账号登录 → 进入工作台 `/`（顶部显示邮箱与剩余免费次数）
+3. 未登录直接访问 `/` → 应重定向到 `/login`
+4. 点击「退出登录」→ 跳到 `/login`
+5. 访问 `/api/auth/me` → 返回当前用户 JSON；退出后访问应返回 `401`
+
+**手机号通道与用户名**
+
+6. 切到「手机号」Tab，填 `1[3-9]` 开头的 11 位号码 → 点「发送验证码」→ 提示条显示
+   「验证码已发送（开发模式固定为 8888）」→ 填 `8888` → 注册成功同样跳 `/login`
+7. 用手机号 + 密码登录（注册时若填了密码）；或用手机号 + 验证码 `8888` 登录
+8. 登录后 `/settings` 应显示默认用户名「用户 + 手机尾号四位」（如 `用户8021`）→ 可改成自定义名
+9. 用改后的**用户名 + 密码**登录 → 应能进入；用户名取成手机号格式会被拒绝
+   （提示「用户名不能与手机号格式相同」——否则登录时会按手机号解析而永远查不到）
+10. 手机号注册时**不填密码**也能成功，之后只能用验证码登录；用密码登录该账号会提示改用验证码。
+    另外「验证码登录」只接受手机号，填用户名或邮箱会提示「验证码登录请使用手机号」
 
 ### 6. 验收：简历与 JD 解析（Phase 2）
 
@@ -305,10 +320,12 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| POST | `/api/auth/register` | 注册（自动登录，需 `acceptTerms: true`） |
-| POST | `/api/auth/login` | 登录 |
+| POST | `/api/auth/register` | 注册，**双通道**：`{channel:'email'}` 邮箱+密码 / `{channel:'phone'}` 手机号+验证码（密码可选）；需 `acceptTerms: true` |
+| POST | `/api/auth/login` | 登录，**双模式**：`{mode:'password'}` / `{mode:'code'}`；`identifier` 可为邮箱 / 手机号 / 用户名 |
+| POST | `/api/auth/sms-code` | 发送短信验证码（**开发态不真发短信**，响应带 `hint` 提示固定码；60 秒内 5 次限流） |
 | POST | `/api/auth/logout` | 退出（会话立即失效，幂等） |
 | GET | `/api/auth/me` | 当前用户 |
+| PATCH | `/api/auth/me` | 修改昵称 / 头像 / **用户名**（用户名被占用返回 409） |
 | GET/POST | `/api/resumes` | 简历列表 / 创建 |
 | POST | `/api/resumes/upload` | 上传简历文件（multipart）并立即解析 |
 | GET/PATCH/DELETE | `/api/resumes/:id` | 简历读取 / 更新（可改解析结果）/ 软删除 |
@@ -365,14 +382,15 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ```
 ├── app/
-│   ├── (app)/                  # 需登录的页面：jd · resumes · sessions · membership · orders · settings
-│   ├── (auth)/                 # 未登录可访问：login · register
+│   ├── (app)/                  # 需登录：`/`（工作台）· jd · resumes · sessions · membership · orders · settings
+│   ├── (auth)/                 # 未登录可访问：login · register（独立全屏认证页）
+│   ├── intro/                  # 公开产品落地页（Hero · 三步 · 特性 · 报告预览）
 │   ├── admin/                  # 管理后台：users · sessions · orders · logs · audit-logs
 │   ├── api/                    # Route Handlers（只做：解析入参 → 调 handler → 返回 envelope）
 │   │   ├── admin/ · auth/ · job-jds/ · resumes/ · sessions/ · payments/
 │   │   └── health/ · test/reset-session/（仅开发与 E2E）
 │   ├── legal/[doc]/            # 隐私政策 · 用户协议
-│   ├── layout.tsx · page.tsx · globals.css · error.tsx · not-found.tsx
+│   ├── layout.tsx · globals.css · error.tsx · not-found.tsx（`/` 由 (app)/page.tsx 提供）
 ├── components/
 │   ├── ui/                     # 无业务语义的原子组件（button · card · dialog · empty-state …）
 │   ├── layout/                 # 应用骨架（app-nav · app-header）
@@ -838,9 +856,11 @@ ADMIN_VIEW_RESUME_CONTENT="true"   # 必须严格为 "true"，不接受 1/TRUE
 
 | 项 | 实现 |
 | --- | --- |
-| 密码存储 | Node 内置 `scrypt`，参数写入哈希串以便后续升级 |
+| 密码存储 | Node 内置 `scrypt`，参数写入哈希串以便后续升级；**纯验证码注册时 `password_hash` 为空** |
 | 会话 | Cookie 存明文令牌，数据库只存 HMAC-SHA256 哈希；退出立即失效（非 JWT） |
-| 防账号枚举 | 账号不存在时也执行一次哈希；错误提示与密码错误完全一致 |
+| 短信验证码 | `SMS_DEV_CODE`（默认 `8888`）只用于本地开发；**上线前必须接真实短信服务并移除固定码**，否则等于任何人可登录任意手机号（见已知事项第 31 条） |
+| 登录标识解析 | 手机号 → 邮箱 → 用户名；**用户名禁止取手机号格式**（否则解析成手机号而永远查不到） |
+| 防账号枚举 | 账号不存在时也执行一次哈希；错误提示与密码错误完全一致；三种标识共用同一文案 |
 | 权限隔离 | 查询条件由 `ownedBy()` 统一生成，**同时包含** `id` 与 `user_id` |
 | 知情同意 | 注册时写入 `consents`（terms / privacy / ai_disclosure）+ `users.terms_accepted_at` |
 | 审计日志 | `audit_logs` 记录注册、登录、退出、删除账号 |
@@ -981,6 +1001,14 @@ ADMIN_VIEW_RESUME_CONTENT="true"   # 必须严格为 "true"，不接受 1/TRUE
     脚本直接崩在一堆栈上，看不出是「仓库有问题」还是「恰好有个 git 在跑」。
     修法是重试 3 次并退避，仍失败则明确打印「审计**未执行**」及原因再退出——
     CI 需要区分「发现违规」与「审计没跑起来」，两者处理方式完全不同。
+31. **⚠️ 短信验证码是固定码 `8888`，上线前必须替换**：`lib/auth/verification-code.ts`
+    的 `SMS_DEV_CODE` 默认 `8888`，`POST /api/auth/sms-code` **不会真的发短信**，
+    只在响应里带 `hint` 把固定码回显给前端。这让本地/演示环境的手机号注册与登录可用，
+    但**对外部署时等于任何人凭任意手机号即可登录他人账号**。
+    上线前必须：接入真实短信服务商 → 校验码改为**服务端随机生成 + 短期有效 + 一次性** →
+    移除 `devCodeHint()` 的回显与前端提示条 → 打开短信发送限流（`auth.sms_code` 已有规则）。
+    另：`username` 与 `phone` 的部分唯一索引均带 `WHERE deleted_at IS NULL`，
+    软删除账号会释放其手机号/用户名，这是刻意设计，但回收前需确认该号已不再用于登录。
 
 ---
 

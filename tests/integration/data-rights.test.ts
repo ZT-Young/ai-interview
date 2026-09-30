@@ -127,7 +127,7 @@ describe.skipIf(!hasTestDatabase())(
         await expect(resolveSessionUser(user.token)).resolves.toBeNull()
         // 无法再登录
         await expect(
-          login({ email: user.email, password: TEST_PASSWORD }),
+          login({ mode: 'password', identifier: user.email, password: TEST_PASSWORD }),
         ).rejects.toBeTruthy()
       })
 
@@ -150,7 +150,11 @@ describe.skipIf(!hasTestDatabase())(
         createdUserIds.push(user.id)
 
         // 再登录一次，制造两个会话
-        const second = await login({ email: user.email, password: TEST_PASSWORD })
+        const second = await login({
+          mode: 'password',
+          identifier: user.email,
+          password: TEST_PASSWORD,
+        })
 
         await deleteUserAccount(user.id, {}, fakeStorage().storage)
 
@@ -208,6 +212,7 @@ describe.skipIf(!hasTestDatabase())(
         // 同一邮箱可再次注册（users_email_unique 带 deleted_at IS NULL 条件）
         const { register } = await import('@/lib/services/handlers/auth-service')
         const again = await register({
+          channel: 'email',
           email: user.email,
           password: TEST_PASSWORD,
           acceptTerms: true,

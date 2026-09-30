@@ -8,15 +8,28 @@ import { resolveSessionUser } from '@/lib/auth/verify-session'
 import { deleteAccount, getUserById, login, logout, register, updateProfile } from '@/lib/services/handlers/auth-service'
 
 import {
+  createTestPhoneUser,
   createTestUser,
   hasTestDatabase,
   hardDeleteUsers,
   missingTestEnvReason,
   TEST_PASSWORD,
   uniqueEmail,
+  uniquePhone,
 } from '../helpers/db'
 
 const createdUserIds: string[] = []
+
+/** 断言异步调用以指定 HTTP 状态码失败（比 toMatchObject 更稳，不受 Error 属性可枚举性影响） */
+async function expectStatus(promise: Promise<unknown>, status: number): Promise<void> {
+  try {
+    await promise
+    throw new Error('应当抛错但没有抛')
+  } catch (error) {
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).status).toBe(status)
+  }
+}
 
 afterAll(async () => {
   if (hasTestDatabase()) await hardDeleteUsers(createdUserIds)
@@ -28,7 +41,12 @@ describe.skipIf(!hasTestDatabase())(
     describe('注册', () => {
       it('创建用户、同意记录、会话与审计日志', async () => {
         const email = uniqueEmail('register')
-        const result = await register({ email: email.toUpperCase(), password: TEST_PASSWORD, acceptTerms: true })
+        const result = await register({
+          channel: 'email',
+          email: email.toUpperCase(),
+          password: TEST_PASSWORD,
+          acceptTerms: true,
+        })
         createdUserIds.push(result.user.id)
 
         // 邮箱被规范化为小写
@@ -78,7 +96,12 @@ describe.skipIf(!hasTestDatabase())(
         createdUserIds.push(created.id)
 
         try {
-          await register({ email: created.email, password: TEST_PASSWORD, acceptTerms: true })
+          await register({
+            channel: 'email',
+            email: created.email,
+            password: TEST_PASSWORD,
+            acceptTerms: true,
+          })
           throw new Error('应当抛错')
         } catch (error) {
           expect(error).toBeInstanceOf(ApiError)
@@ -91,7 +114,12 @@ describe.skipIf(!hasTestDatabase())(
         createdUserIds.push(created.id)
 
         await expect(
-          register({ email: created.email, password: TEST_PASSWORD, acceptTerms: true }),
+          register({
+            channel: 'email',
+            email: created.email,
+            password: TEST_PASSWORD,
+            acceptTerms: true,
+          }),
         ).rejects.toThrow()
 
         const db = getDb()
@@ -105,7 +133,11 @@ describe.skipIf(!hasTestDatabase())(
         const created = await createTestUser('login')
         createdUserIds.push(created.id)
 
-        const result = await login({ email: created.email, password: TEST_PASSWORD })
+        const result = await login({
+          mode: 'password',
+          identifier: created.email,
+          password: TEST_PASSWORD,
+        })
         expect(result.user.id).toBe(created.id)
         expect(result.token).not.toBe(created.token)
 
@@ -118,7 +150,11 @@ describe.skipIf(!hasTestDatabase())(
         const created = await createTestUser('case')
         createdUserIds.push(created.id)
 
-        const result = await login({ email: created.email.toUpperCase(), password: TEST_PASSWORD })
+        const result = await login({
+          mode: 'password',
+          identifier: created.email.toUpperCase(),
+          password: TEST_PASSWORD,
+        })
         expect(result.user.id).toBe(created.id)
       })
 
@@ -130,14 +166,22 @@ describe.skipIf(!hasTestDatabase())(
         let unknownAccountMessage = ''
 
         try {
-          await login({ email: created.email, password: 'Wrong-Password-999' })
+          await login({
+            mode: 'password',
+            identifier: created.email,
+            password: 'Wrong-Password-999',
+          })
         } catch (error) {
           expect((error as ApiError).status).toBe(401)
           wrongPasswordMessage = (error as ApiError).message
         }
 
         try {
-          await login({ email: uniqueEmail('ghost'), password: 'Wrong-Password-999' })
+          await login({
+            mode: 'password',
+            identifier: uniqueEmail('ghost'),
+            password: 'Wrong-Password-999',
+          })
         } catch (error) {
           expect((error as ApiError).status).toBe(401)
           unknownAccountMessage = (error as ApiError).message
@@ -151,7 +195,7 @@ describe.skipIf(!hasTestDatabase())(
       it('登录写入审计日志', async () => {
         const created = await createTestUser('audit')
         createdUserIds.push(created.id)
-        await login({ email: created.email, password: TEST_PASSWORD })
+        await login({ mode: 'password', identifier: created.email, password: TEST_PASSWORD })
 
         const db = getDb()
         const rows = await db
@@ -189,7 +233,11 @@ describe.skipIf(!hasTestDatabase())(
       it('退出只影响当前会话，其他设备仍在线', async () => {
         const created = await createTestUser('multi')
         createdUserIds.push(created.id)
-        const second = await login({ email: created.email, password: TEST_PASSWORD })
+        const second = await login({
+          mode: 'password',
+          identifier: created.email,
+          password: TEST_PASSWORD,
+        })
 
         await logout(created.token)
 
@@ -241,9 +289,146 @@ describe.skipIf(!hasTestDatabase())(
 
         await expect(resolveSessionUser(created.token)).resolves.toBeNull()
         await expect(
-          login({ email: created.email, password: TEST_PASSWORD }),
+          login({ mode: 'password', identifier: created.email, password: TEST_PASSWORD }),
         ).rejects.toBeInstanceOf(ApiError)
         await expect(getUserById(created.id)).rejects.toBeInstanceOf(ApiError)
+      })
+    })
+
+    describe('手机号注册与多标识登录', () => {
+      it('手机号注册：默认用户名为「用户 + 尾号四位」，且未设密码、手机号已验证', async () => {
+        const created = await createTestPhoneUser()
+        createdUserIds.push(created.id)
+
+        expect(created.username).toBe(`用户${created.phone.slice(-4)}`)
+
+        const db = getDb()
+        const rows = await db.select().from(users).where(eq(users.id, created.id))
+        // 手机号通道未设密码 → 只能用验证码登录
+        expect(rows[0]!.passwordHash).toBeNull()
+        expect(rows[0]!.phoneVerifiedAt).not.toBeNull()
+      })
+
+      it('邮箱注册：默认用户名为「用户 + 随机四位」', async () => {
+        const created = await createTestUser('defaultname')
+        createdUserIds.push(created.id)
+
+        const user = await getUserById(created.id)
+        expect(user.username).toMatch(/^用户\d{4}$/)
+      })
+
+      it('可用用户名登录', async () => {
+        const created = await createTestUser('login-by-username')
+        createdUserIds.push(created.id)
+        const user = await getUserById(created.id)
+
+        const result = await login({
+          mode: 'password',
+          identifier: user.username!,
+          password: TEST_PASSWORD,
+        })
+        expect(result.user.id).toBe(created.id)
+      })
+
+      it('手机号 + 验证码登录（演示固定码 8888）', async () => {
+        const created = await createTestPhoneUser()
+        createdUserIds.push(created.id)
+
+        const result = await login({ mode: 'code', identifier: created.phone, code: '8888' })
+        expect(result.user.id).toBe(created.id)
+      })
+
+      it('手机号 + 密码登录（注册时设置了密码）', async () => {
+        const phone = uniquePhone()
+        const result = await register({
+          channel: 'phone',
+          phone,
+          code: '8888',
+          password: TEST_PASSWORD,
+          acceptTerms: true,
+        })
+        createdUserIds.push(result.user.id)
+
+        const loggedIn = await login({
+          mode: 'password',
+          identifier: phone,
+          password: TEST_PASSWORD,
+        })
+        expect(loggedIn.user.id).toBe(result.user.id)
+      })
+
+      it('错误验证码登录抛 401', async () => {
+        const created = await createTestPhoneUser()
+        createdUserIds.push(created.id)
+
+        await expectStatus(
+          login({ mode: 'code', identifier: created.phone, code: '0000' }),
+          401,
+        )
+      })
+
+      it('未设密码的手机号账号用密码登录失败，提示与「账号不存在」完全一致（防账号枚举）', async () => {
+        const created = await createTestPhoneUser()
+        createdUserIds.push(created.id)
+
+        let noPasswordMessage = ''
+        let unknownAccountMessage = ''
+
+        try {
+          await login({
+            mode: 'password',
+            identifier: created.phone,
+            password: TEST_PASSWORD,
+          })
+        } catch (error) {
+          noPasswordMessage = (error as ApiError).message
+        }
+
+        try {
+          await login({
+            mode: 'password',
+            identifier: uniqueEmail('ghost-nopassword'),
+            password: TEST_PASSWORD,
+          })
+        } catch (error) {
+          unknownAccountMessage = (error as ApiError).message
+        }
+
+        expect(noPasswordMessage).toBe(unknownAccountMessage)
+      })
+
+      it('用户名被占用时更新资料抛 409', async () => {
+        const first = await createTestUser('dupname-a')
+        const second = await createTestUser('dupname-b')
+        createdUserIds.push(first.id, second.id)
+
+        const firstUser = await getUserById(first.id)
+        await expectStatus(updateProfile(second.id, { username: firstUser.username! }), 409)
+      })
+
+      it('手机号被占用时注册抛 409', async () => {
+        const created = await createTestPhoneUser()
+        createdUserIds.push(created.id)
+
+        await expectStatus(
+          register({ channel: 'phone', phone: created.phone, code: '8888', acceptTerms: true }),
+          409,
+        )
+      })
+
+      it('改名后可用新用户名登录', async () => {
+        const created = await createTestUser('rename-login')
+        createdUserIds.push(created.id)
+
+        const updated = await updateProfile(created.id, { username: '面试小能手' })
+        expect(updated.username).toBe('面试小能手')
+
+        const result = await login({
+          mode: 'password',
+          identifier: '面试小能手',
+          password: TEST_PASSWORD,
+        })
+        expect(result.user.id).toBe(created.id)
       })
     })
   },

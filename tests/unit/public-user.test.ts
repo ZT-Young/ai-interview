@@ -7,6 +7,9 @@ const row: User = {
   id: '11111111-1111-1111-1111-111111111111',
   email: 'user@example.com',
   passwordHash: 'scrypt$16384$8$1$salt$hash',
+  phone: null,
+  phoneVerifiedAt: null,
+  username: '用户1234',
   name: '张三',
   avatarUrl: null,
   membership: 'free',
@@ -29,6 +32,17 @@ describe('用户对外视图', () => {
   it('把 emailVerifiedAt 转换为布尔标记', () => {
     expect(toPublicUser(row).emailVerified).toBe(false)
     expect(toPublicUser({ ...row, emailVerifiedAt: new Date() }).emailVerified).toBe(true)
+  })
+
+  it('把 phoneVerifiedAt 转换为布尔标记', () => {
+    expect(toPublicUser(row).phoneVerified).toBe(false)
+    expect(toPublicUser({ ...row, phoneVerifiedAt: new Date() }).phoneVerified).toBe(true)
+  })
+
+  it('暴露 phone 与 username（登录标识与展示）', () => {
+    const publicUser = toPublicUser({ ...row, phone: '13800138000', username: '用户8000' })
+    expect(publicUser.phone).toBe('13800138000')
+    expect(publicUser.username).toBe('用户8000')
   })
 
   it('不泄露软删除标记等内部字段', () => {

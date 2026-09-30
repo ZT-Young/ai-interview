@@ -78,7 +78,10 @@ export async function getOverview(): Promise<AdminOverview> {
 
 export interface AdminUserView {
   id: string
-  email: string
+  /** 纯手机号注册的用户没有邮箱；此时用 `username` 定位 */
+  email: string | null
+  /** 注册时自动生成（手机号尾号或随机四位），可被用户修改 */
+  username: string | null
   name: string | null
   membership: string
   freeCredits: number
@@ -97,6 +100,7 @@ export async function listUsers(): Promise<AdminUserView[]> {
     .select({
       id: users.id,
       email: users.email,
+      username: users.username,
       name: users.name,
       membership: users.membership,
       freeCredits: users.freeCredits,
@@ -115,6 +119,7 @@ export async function listUsers(): Promise<AdminUserView[]> {
   return rows.map((row) => ({
     id: row.id,
     email: row.email,
+    username: row.username,
     name: row.name,
     membership: row.membership,
     freeCredits: row.freeCredits,
@@ -178,6 +183,7 @@ export async function getUserDetail(
     user: {
       id: user.id,
       email: user.email,
+      username: user.username,
       name: user.name,
       membership: user.membership,
       freeCredits: user.freeCredits,
@@ -207,7 +213,9 @@ export async function getUserDetail(
 export interface AdminSessionView {
   id: string
   userId: string
-  userEmail: string
+  /** 纯手机号注册的用户没有邮箱，用 `userName` 兜底展示 */
+  userEmail: string | null
+  userName: string | null
   status: string
   phase: string
   questionCount: number
@@ -224,6 +232,7 @@ export async function listSessions(): Promise<AdminSessionView[]> {
       id: interviewSessions.id,
       userId: interviewSessions.userId,
       userEmail: users.email,
+      userName: users.username,
       status: interviewSessions.status,
       phase: interviewSessions.phase,
       createdAt: interviewSessions.createdAt,
@@ -241,6 +250,7 @@ export async function listSessions(): Promise<AdminSessionView[]> {
     id: row.id,
     userId: row.userId,
     userEmail: row.userEmail,
+    userName: row.userName,
     status: row.status,
     phase: row.phase,
     questionCount: Number(row.questionCount ?? 0),
@@ -256,7 +266,9 @@ export async function listSessions(): Promise<AdminSessionView[]> {
 
 export interface AdminOrderView {
   id: string
-  userEmail: string
+  /** 纯手机号注册的用户没有邮箱，用 `userName` 兜底展示 */
+  userEmail: string | null
+  userName: string | null
   unlockType: string
   amountCents: number
   currency: string
@@ -272,6 +284,7 @@ export async function listAllOrders(): Promise<AdminOrderView[]> {
     .select({
       id: payments.id,
       userEmail: users.email,
+      userName: users.username,
       unlockType: payments.unlockType,
       amountCents: payments.amountCents,
       currency: payments.currency,
@@ -289,6 +302,7 @@ export async function listAllOrders(): Promise<AdminOrderView[]> {
   return rows.map((row) => ({
     id: row.id,
     userEmail: row.userEmail,
+    userName: row.userName,
     unlockType: row.unlockType,
     amountCents: row.amountCents,
     currency: row.currency,

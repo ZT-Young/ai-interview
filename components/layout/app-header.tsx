@@ -18,6 +18,7 @@ export async function AppHeader() {
 
   const viewUser: AppNavUser = {
     email: user.email,
+    username: user.username,
     name: user.name,
     membership: user.membership,
     freeCredits: user.freeCredits,

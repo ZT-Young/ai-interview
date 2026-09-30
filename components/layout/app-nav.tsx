@@ -38,7 +38,10 @@ function visibleNavItems(freeMode: boolean) {
 }
 
 export interface AppNavUser {
-  email: string
+  /** 纯手机号注册的用户没有邮箱 */
+  email: string | null
+  /** 注册时自动生成的用户名，可作登录标识，也是展示的兜底名称 */
+  username: string | null
   name: string | null
   membership: string
   freeCredits: number
@@ -80,7 +83,9 @@ export function AppNav({ user, freeMode = false }: { user: AppNavUser; freeMode?
     }
   }
 
-  const displayName = user.name?.trim() || user.email
+  // 展示优先级：昵称 → 用户名 → 邮箱 → 兜底文案。
+  // 纯手机号注册的用户没有邮箱，因此用户名必须排在邮箱前面。
+  const displayName = user.name?.trim() || user.username || user.email || '我的账号'
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
@@ -129,7 +134,7 @@ export function AppNav({ user, freeMode = false }: { user: AppNavUser; freeMode?
 
           <span
             className="hidden max-w-[12rem] truncate text-sm text-muted-foreground lg:inline"
-            title={user.email}
+            title={user.email ?? user.username ?? undefined}
           >
             {displayName}
           </span>

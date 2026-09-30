@@ -22,6 +22,9 @@
 # dev 模式独立产物目录（见 next.config.mjs distDir）：与 .next 分开，
 # 避免 `pnpm dev` 与 `pnpm build` 并行时互相破坏 chunk 清单
 /.next-dev/
+# 旧产物目录的重命名残留（dev 启动前用 mv 挪开，避免批量删除触发沙箱拦截）
+/.next-stale-*/
+/.next-dev-stale-*/
 /out/
 
 # production

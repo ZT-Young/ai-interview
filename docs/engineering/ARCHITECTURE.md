@@ -300,8 +300,10 @@ IDLE ──► PARSING ──► READY ──► ASKING ──► WAITING_ANSWER
 
 | 项 | 决策 |
 |---|---|
-| 凭证 | **邮箱 + 密码**（Phase 1 不发验证邮件，`email_verified_at` 留空表示待验证） |
-| 密码哈希 | Node 内置 `crypto.scrypt`（无原生依赖，便于 Serverless 部署）；参数记录在哈希串内以便后续升级 |
+| 凭证 | **邮箱 / 手机号 / 用户名 + 密码或短信验证码**。邮箱通道不发验证邮件（`email_verified_at` 留空表示待验证）；手机号通道注册即写 `phone_verified_at`。**三者至少有一个**（DB 层 `users_credential_present` CHECK） |
+| 标识解析 | 服务端按「手机号 → 邮箱 → 用户名」判定查哪一列（`auth-service.resolveIdentifierKind`）；用户名禁止取手机号格式 |
+| 短信验证码 | 开发态由 `SMS_DEV_CODE` 固定为 `8888` 且**不真发短信**；上线前必须接真实服务商（README 已知事项第 31 条） |
+| 密码哈希 | Node 内置 `crypto.scrypt`（无原生依赖，便于 Serverless 部署）；参数记录在哈希串内以便后续升级。**纯验证码注册时 `password_hash` 为空** |
 | 会话载体 | `sessions` 表 + HttpOnly Cookie（**非 JWT**，理由见 §3.1） |
 | 会话有效期 | 30 天滑动过期；退出登录置 `revoked_at` 立即失效 |
 | 密码要求 | 最少 8 位；服务端校验，前端提示 |
@@ -367,7 +369,7 @@ IDLE ──► PARSING ──► READY ──► ASKING ──► WAITING_ANSWER
 
 | 能力 | 状态 | 备选 |
 |---|---|---|
-| 鉴权 | ✅ **已定：自建**（邮箱+密码+DB 会话） | — |
+| 鉴权 | ✅ **已定：自建**（邮箱/手机号/用户名 + 密码或验证码 + DB 会话） | — |
 | LLM | ✅ 已定：OpenAI 兼容接口 | DeepSeek / Qwen / GPT 由环境变量切换 |
 | 数据库 | ✅ 已定：PostgreSQL + Drizzle | Neon / Supabase 待定 |
 | ASR | ⏳ **TBD** | Whisper API / 国内 ASR |

@@ -48,7 +48,7 @@ export default async function AdminSessionsPage() {
             <tbody>
               {sessions.map((session) => (
                 <tr key={session.id} className="border-b last:border-0">
-                  <td className="py-2 pr-4">{session.userEmail}</td>
+                  <td className="py-2 pr-4">{session.userEmail ?? session.userName ?? '—'}</td>
                   <td className="py-2 pr-4">
                     <Badge variant={session.status === 'completed' ? 'default' : 'secondary'}>
                       {session.status}

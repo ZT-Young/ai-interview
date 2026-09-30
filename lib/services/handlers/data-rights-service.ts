@@ -41,7 +41,10 @@ export interface DataExport {
   legalDocuments: Array<{ type: string; title: string; version: string }>
   account: {
     id: string
-    email: string
+    /** 纯手机号注册的用户没有邮箱 */
+    email: string | null
+    phone: string | null
+    username: string | null
     name: string | null
     membership: string
     freeCredits: number
@@ -183,6 +186,8 @@ export async function exportUserData(userId: string): Promise<DataExport> {
     account: {
       id: user.id,
       email: user.email,
+      phone: user.phone,
+      username: user.username,
       name: user.name,
       membership: user.membership,
       freeCredits: user.freeCredits,

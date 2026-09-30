@@ -37,7 +37,8 @@ export default async function AdminUsersPage() {
           <Card key={user.id}>
             <CardContent className="space-y-3 pt-6">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">{user.email}</span>
+                {/* 纯手机号注册的用户没有邮箱，退回用户名展示 */}
+                <span className="font-medium">{user.email ?? user.username ?? '—'}</span>
                 {user.isAdmin ? <Badge variant="destructive">管理员</Badge> : null}
                 <Badge variant={user.membership === 'free' ? 'secondary' : 'default'}>
                   {user.membership}

@@ -13,14 +13,26 @@ import { api, ApiClientError } from '@/lib/http/api-client'
  *
  * - **导出**：直接下载 JSON（服务端只导出当前登录用户的数据）
  * - **删除**：二次确认，需输入自己的邮箱才能提交（防误触）
+ *
+ * @param email 邮箱；**纯手机号注册的用户为 null**
+ * @param username 用户名；无邮箱用户改用它作为删除确认的凭据
  */
-export function DataRightsPanel({ email }: { email: string }) {
+export function DataRightsPanel({
+  email,
+  username,
+}: {
+  email: string | null
+  username: string | null
+}) {
   const router = useRouter()
   const [confirmText, setConfirmText] = useState('')
   const [pending, setPending] = useState<null | 'delete'>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const canDelete = confirmText.trim().toLowerCase() === email.toLowerCase()
+  // 删除确认的比对目标：有邮箱用邮箱，没有则退回用户名（每个用户必有用户名）
+  const confirmTarget = email ?? username ?? ''
+  const confirmLabel = email ? '邮箱' : '用户名'
+  const canDelete = confirmText.trim().toLowerCase() === confirmTarget.toLowerCase()
 
   async function downloadExport() {
     setError(null)
@@ -78,14 +90,14 @@ export function DataRightsPanel({ email }: { email: string }) {
         <CardContent className="space-y-3">
           <div className="space-y-2">
             <Label htmlFor="confirm-email">
-              请输入你的邮箱以确认：<span className="font-mono">{email}</span>
+              请输入你的{confirmLabel}以确认：<span className="font-mono">{confirmTarget}</span>
             </Label>
             <Input
               id="confirm-email"
               data-testid="confirm-email-input"
               value={confirmText}
               onChange={(event) => setConfirmText(event.target.value)}
-              placeholder={email}
+              placeholder={confirmTarget}
               autoComplete="off"
             />
           </div>

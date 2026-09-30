@@ -1,6 +1,7 @@
 ﻿import Link from 'next/link'
 
 import { DataRightsPanel } from '@/components/features/settings/data-rights-panel'
+import { UsernameForm } from '@/components/features/settings/username-form'
 import { LogoutButton } from '@/components/features/auth/logout-button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { requirePageUser } from '@/lib/api/guard'
@@ -26,8 +27,24 @@ export default async function SettingsPage() {
     <main className="container max-w-2xl space-y-6 py-10">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold">账户设置</h1>
-        <p className="text-sm text-muted-foreground">{user.email}</p>
+        {/* 纯手机号注册的用户没有邮箱，因此以用户名为主要标识展示 */}
+        <p className="text-sm text-muted-foreground">
+          {user.username ?? '未设置用户名'}
+          {user.email ? ` · ${user.email}` : user.phone ? ` · ${user.phone}` : ''}
+        </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">用户名</CardTitle>
+          <CardDescription>
+            用户名可用于登录，也可随时修改；注册时自动生成（手机号用户为「用户+尾号四位」）。
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <UsernameForm initialUsername={user.username} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -52,7 +69,7 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <DataRightsPanel email={user.email} />
+      <DataRightsPanel email={user.email} username={user.username} />
 
       <Card>
         <CardHeader>

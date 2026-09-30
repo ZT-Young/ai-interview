@@ -141,27 +141,54 @@ erDiagram
 | 字段 | 类型 | 约束 | 默认 | 说明 |
 |---|---|---|---|---|
 | `id` | `uuid` | PK | `gen_random_uuid()` | 主键 |
-| `email` | `varchar(255)` | NOT NULL | — | 登录凭证；**存小写规范化值** |
-| `password_hash` | `text` | NOT NULL | — | Argon2id/scrypt 哈希，**禁止明文** |
+| `email` | `varchar(255)` | **NULL** | — | 邮箱登录凭证；**存小写规范化值**。手机号注册时为空 |
+| `phone` | `varchar(20)` | NULL | — | 手机号登录凭证（`1[3-9]\d{9}`）。邮箱注册时为空 |
+| `username` | `varchar(50)` | NULL | — | 用户名登录凭证，2–30 字符，可自助修改 |
+| `password_hash` | `text` | **NULL** | — | scrypt 哈希，**禁止明文**。纯验证码注册且未设密码时为空 |
 | `name` | `varchar(100)` | NULL | — | 昵称 |
 | `avatar_url` | `text` | NULL | — | 头像 |
 | `membership` | `membership_level` | NOT NULL | `free` | 会员等级 |
 | `free_credits` | `integer` | NOT NULL, `>= 0` | `1` | 剩余免费面试次数 |
 | `email_verified_at` | `timestamptz` | NULL | — | Phase 1 无邮件服务，仅标记待验证 |
+| `phone_verified_at` | `timestamptz` | NULL | — | 手机号首次通过验证码校验的时间 |
 | `terms_accepted_at` | `timestamptz` | NULL | — | 同意时间戳（C1） |
 | `created_at` | `timestamptz` | NOT NULL | `now()` | — |
 | `updated_at` | `timestamptz` | NOT NULL | `now()` | 应用层维护 |
 | `deleted_at` | `timestamptz` | NULL | — | 软删除（C3）；`NULL` 表示有效 |
+
+**三种登录标识的解析顺序**（`lib/services/handlers/auth-service.ts#resolveIdentifierKind`，唯一实现）
+
+| 顺序 | 判定 | 查列 |
+|---|---|---|
+| 1 | 匹配 `/^1[3-9]\d{9}$/` | `users.phone` |
+| 2 | 含 `@` | `users.email` |
+| 3 | 其余 | `users.username` |
+
+> **用户名禁止取手机号格式**：`usernameSchema` 有 `.refine()` 拒绝 `/^1[3-9]\d{9}$/`。
+> 否则解析会把它当成手机号去查 `users.phone`，查不到 → 该账号永远登不上。
+>
+> **默认用户名规则**：手机号注册 → `用户` + 手机尾号四位（如 `用户8021`）；
+> 邮箱注册 → `用户` + 随机四位。冲突时重试 20 次，仍冲突兜底 8 位随机串
+> （`allocateUsername()`）。用户名可自助修改，`PATCH /api/auth/me`。
 
 **约束与索引**
 
 | 类型 | 定义 | 目的 |
 |---|---|---|
 | 唯一索引 | `users_email_unique (email) WHERE deleted_at IS NULL` | 软删除后邮箱可复用 |
+| 唯一索引 | `users_phone_unique (phone) WHERE deleted_at IS NULL` | 手机号唯一（软删除后可复用） |
+| 唯一索引 | `users_username_unique (username) WHERE deleted_at IS NULL` | 用户名唯一（软删除后可复用） |
+| CHECK | `users_credential_present (email IS NOT NULL OR phone IS NOT NULL)` | **至少有邮箱或手机号**，否则账号无任何登录凭证 |
 | 索引 | `users_membership_idx (membership)` | 管理后台筛选 |
 | 索引 | `users_created_at_idx (created_at)` | 管理后台按时间排序 |
 | CHECK | `free_credits >= 0` | 次数不可为负 |
 | CHECK | `membership IN (...)` | 枚举由 PG 类型保证，此处冗余防御 |
+
+> `email` / `password_hash` 由 NOT NULL 放宽为 NULL（迁移 `0009`），代价是**所有读这两个字段的
+> 调用点都必须处理空值**：管理后台列表、数据导出、导航展示一律用
+> `email ?? username ?? '—'` 兜底，删除确认用 `email ?? username`。
+> 视图（`PublicUser` / `AuthenticatedUser` / `AdminUserView` / `DataExport.account`）
+> **永不暴露 `password_hash`**。
 
 ---
 
@@ -446,6 +473,8 @@ erDiagram
 | 场景 | 依赖索引 |
 |---|---|
 | 登录（按邮箱查用户） | `users_email_unique` |
+| 登录（按手机号查用户） | `users_phone_unique` |
+| 登录（按用户名查用户） | `users_username_unique` |
 | 会话校验（按 token 哈希查） | `sessions_token_hash_unique` |
 | 历史记录列表 | `sessions_user_status_idx` |
 | 按序取题（面试进行中） | `questions_session_order_idx` |

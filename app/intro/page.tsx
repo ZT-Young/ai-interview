@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-import { LogoutButton } from '@/components/features/auth/logout-button'
 import { AppFooter } from '@/components/layout/app-header'
 import { InterviewerAvatar } from '@/components/features/interview/interviewer-avatar'
 import { Badge } from '@/components/ui/badge'
@@ -9,7 +8,18 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { optionalUser } from '@/lib/api/guard'
 
-/** 强制动态渲染：需要读取会话 Cookie 判断登录态 */
+/**
+ * 产品落地页 `/intro`（公开）。
+ *
+ * 与工作台 `/` 分离：`/` 是登录后才能进入的 AI 面试工作台（未登录重定向 `/login`），
+ * 本页承担「未登录访客了解产品」的职责，因此**对所有人公开**。
+ *
+ * 已登录用户访问时不会重复展示注册 CTA，而是引导「进入工作台」。
+ */
+export const metadata = {
+  title: 'AI 模拟面试 · 产品介绍',
+  description: '粘贴目标岗位 JD、上传简历，AI 面试官陪你练一遍，并给出多维评分与提升建议。',
+}
 export const dynamic = 'force-dynamic'
 
 /* ---------------------------------------------------------------------------
@@ -124,14 +134,13 @@ const STEPS = [
   },
 ]
 
-export default async function HomePage() {
+export default async function IntroPage() {
   const user = await optionalUser()
 
   return (
     <main className="overflow-x-hidden">
       {/* ===================== Hero ===================== */}
       <section className="relative isolate">
-        {/* 柔和渐变光晕（玻璃感背景，不影响可读性） */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
@@ -159,7 +168,7 @@ export default async function HomePage() {
             <div className="flex flex-wrap items-center gap-3">
               {user ? (
                 <Button asChild size="lg">
-                  <Link href="/sessions/new">开始一次模拟面试</Link>
+                  <Link href="/">进入工作台</Link>
                 </Button>
               ) : (
                 <Button asChild size="lg">
@@ -175,7 +184,7 @@ export default async function HomePage() {
             </p>
           </div>
 
-          {/* Hero 旁：模拟面试卡片预览（让产品可被「看见」） */}
+          {/* Hero 旁：模拟面试卡片预览 */}
           <div className="animate-fade-in-up [animation-delay:80ms]">
             <div className="relative mx-auto w-full max-w-md rounded-2xl border bg-card/80 p-5 shadow-raised backdrop-blur">
               <div className="mb-4 flex items-center gap-3">
@@ -303,7 +312,6 @@ export default async function HomePage() {
             </ul>
           </div>
 
-          {/* 报告卡片视觉（mock） */}
           <div className="mx-auto w-full max-w-sm rounded-2xl border bg-card p-5 shadow-raised">
             <div className="flex items-baseline justify-between">
               <p className="text-sm text-muted-foreground">面试总分</p>
@@ -339,53 +347,35 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ===================== 登录态看板 / 收尾 CTA ===================== */}
-      {user ? (
-        <section className="container pb-16">
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>欢迎回来</CardTitle>
-              <CardDescription>
-                {user.email} · 会员等级 {user.membership} · 剩余免费次数 {user.freeCredits}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-3">
-              <Button asChild>
-                <Link href="/sessions/new">新建面试</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/resumes">我的简历</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/jd">岗位 JD</Link>
-              </Button>
-              {user.isAdmin ? (
-                <Button asChild variant="secondary">
-                  <Link href="/admin">管理后台</Link>
-                </Button>
-              ) : null}
-              <LogoutButton />
-            </CardContent>
-          </Card>
-        </section>
-      ) : (
-        <section className="container pb-20 text-center">
-          <div className="mx-auto max-w-xl rounded-2xl border bg-gradient-to-br from-primary/5 to-transparent p-8 shadow-card">
-            <h2 className="text-xl font-bold tracking-tight sm:text-2xl">准备好了吗？</h2>
-            <p className="mt-2 text-muted-foreground">
-              注册只需一分钟，免费次数即可开始你的第一场模拟面试。
-            </p>
-            <div className="mt-5 flex justify-center gap-3">
+      {/* ===================== 收尾 CTA ===================== */}
+      <section className="container pb-20 text-center">
+        <div className="mx-auto max-w-xl rounded-2xl border bg-gradient-to-br from-primary/5 to-transparent p-8 shadow-card">
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
+            {user ? '回到工作台，继续练习' : '准备好了吗？'}
+          </h2>
+          <p className="mt-2 text-muted-foreground">
+            {user
+              ? '你的简历、岗位 JD 与历史面试都在工作台里等着你。'
+              : '注册只需一分钟，免费次数即可开始你的第一场模拟面试。'}
+          </p>
+          <div className="mt-5 flex justify-center gap-3">
+            {user ? (
               <Button asChild size="lg">
-                <Link href="/register">免费开始练习</Link>
+                <Link href="/">进入工作台</Link>
               </Button>
-              <Button asChild size="lg" variant="ghost">
-                <Link href="/login">已有账号，登录</Link>
-              </Button>
-            </div>
+            ) : (
+              <>
+                <Button asChild size="lg">
+                  <Link href="/register">免费开始练习</Link>
+                </Button>
+                <Button asChild size="lg" variant="ghost">
+                  <Link href="/login">已有账号，登录</Link>
+                </Button>
+              </>
+            )}
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       <AppFooter />
     </main>
