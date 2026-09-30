@@ -37,6 +37,18 @@ export function LoginForm() {
 
   const identifierIsPhone = PHONE_RE.test(identifier.trim())
 
+  function switchMode(next: Mode) {
+    if (next === mode) return
+    setMode(next)
+    setError(null)
+    if (next === 'code') {
+      // 切到验证码模式时清掉非手机号内容，避免「标签写着手机号、框里却是邮箱」
+      if (!identifierIsPhone) setIdentifier('')
+    } else {
+      setCodeHint(null)
+    }
+  }
+
   async function handleSendCode() {
     setError(null)
     if (!identifierIsPhone) {
@@ -93,7 +105,7 @@ export function LoginForm() {
           role="tab"
           aria-selected={mode === 'password'}
           className={tabClass(mode === 'password')}
-          onClick={() => setMode('password')}
+          onClick={() => switchMode('password')}
         >
           密码登录
         </button>
@@ -102,23 +114,38 @@ export function LoginForm() {
           role="tab"
           aria-selected={mode === 'code'}
           className={tabClass(mode === 'code')}
-          onClick={() => setMode('code')}
+          onClick={() => switchMode('code')}
         >
           验证码登录
         </button>
       </div>
 
       <div className="space-y-2">
-        {/* 标签里显式列出三种标识，避免用户不知道能填什么 */}
-        <Label htmlFor="identifier">账号（邮箱 / 手机号 / 用户名）</Label>
+        {/*
+          密码模式：三种标识都能填，标签显式列出，避免用户不知道能填什么。
+          验证码模式：服务端只接受手机号（非手机号一律 401「验证码登录请使用手机号」），
+          因此这里同步收敛为手机号表单，别让用户填了邮箱才被打回来。
+        */}
+        {mode === 'code' ? (
+          <Label htmlFor="identifier">手机号</Label>
+        ) : (
+          <Label htmlFor="identifier">账号（邮箱 / 手机号 / 用户名）</Label>
+        )}
         <Input
           id="identifier"
-          autoComplete="username"
+          autoComplete={mode === 'code' ? 'tel' : 'username'}
+          inputMode={mode === 'code' ? 'tel' : undefined}
+          maxLength={mode === 'code' ? 11 : undefined}
           required
           value={identifier}
-          onChange={(event) => setIdentifier(event.target.value)}
-          placeholder="邮箱、手机号或用户名"
+          onChange={(event) =>
+            setIdentifier(mode === 'code' ? event.target.value.replace(/\D/g, '') : event.target.value)
+          }
+          placeholder={mode === 'code' ? '请输入 11 位手机号' : '邮箱、手机号或用户名'}
         />
+        {mode === 'code' ? (
+          <p className="text-xs text-muted-foreground">验证码登录仅支持手机号。</p>
+        ) : null}
       </div>
 
       {mode === 'password' ? (
@@ -160,9 +187,6 @@ export function LoginForm() {
               {countdown > 0 ? `${countdown}s 后重发` : '获取验证码'}
             </Button>
           </div>
-          {!identifierIsPhone ? (
-            <p className="text-xs text-muted-foreground">验证码登录需填写 11 位手机号。</p>
-          ) : null}
           {codeHint ? (
             <p className="text-xs text-muted-foreground" data-testid="sms-code-hint">
               {codeHint}

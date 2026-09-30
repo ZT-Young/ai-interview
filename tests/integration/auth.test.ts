@@ -367,6 +367,28 @@ describe.skipIf(!hasTestDatabase())(
         )
       })
 
+      it('验证码登录仅限手机号：邮箱与用户名一律 401', async () => {
+        const created = await createTestUser('code-mode-email')
+        createdUserIds.push(created.id)
+        const user = await getUserById(created.id)
+
+        // 邮箱
+        try {
+          await login({ mode: 'code', identifier: created.email, code: '8888' })
+          throw new Error('邮箱 + 验证码不应登录成功')
+        } catch (error) {
+          expect((error as ApiError).message).toBe('验证码登录请使用手机号')
+        }
+
+        // 用户名
+        try {
+          await login({ mode: 'code', identifier: user.username!, code: '8888' })
+          throw new Error('用户名 + 验证码不应登录成功')
+        } catch (error) {
+          expect((error as ApiError).message).toBe('验证码登录请使用手机号')
+        }
+      })
+
       it('未设密码的手机号账号用密码登录失败，提示与「账号不存在」完全一致（防账号枚举）', async () => {
         const created = await createTestPhoneUser()
         createdUserIds.push(created.id)
