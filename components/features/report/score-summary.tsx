@@ -16,10 +16,10 @@ export function ScoreSummary({
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      <div className="rounded-lg border p-4">
+      <div className="rounded-lg border border-primary/10 bg-gradient-to-br from-primary/5 to-transparent p-4">
         <p className="text-sm text-muted-foreground">面试总分</p>
         <p className="mt-1 flex items-baseline gap-1">
-          <span className="text-3xl font-bold tabular-nums" data-testid="total-score">
+          <span className="text-3xl font-bold tabular-nums text-primary" data-testid="total-score">
             {totalScore}
           </span>
           <span className="text-sm text-muted-foreground">/ 100</span>
@@ -27,7 +27,7 @@ export function ScoreSummary({
         <p className="mt-1 text-xs text-muted-foreground">基于你的实际回答表现，可逐题回溯</p>
       </div>
 
-      <div className="rounded-lg border p-4">
+      <div className="rounded-lg border border-primary/10 bg-gradient-to-br from-primary/5 to-transparent p-4">
         <div className="flex items-center gap-2">
           <p className="text-sm text-muted-foreground">岗位匹配度</p>
           <Badge variant="outline">仅供参考</Badge>

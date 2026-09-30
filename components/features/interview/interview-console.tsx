@@ -4,10 +4,12 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { Progress } from '@/components/ui/progress'
 import { Alert } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { InterviewerAvatar } from '@/components/features/interview/interviewer-avatar'
 import { api, ApiClientError } from '@/lib/http/api-client'
 import { QUESTION_SOURCE_LABELS, SCORE_DIMENSION_LABELS } from '@/lib/constants/questions'
 import { cn } from '@/lib/utils/index'
@@ -166,31 +168,51 @@ export function InterviewConsole({
   const finished = step.finished || step.phase === 'FINISHED'
   const isFollowUp = (step.question?.depth ?? 0) > 0
 
+  const answered = step.progress.answered
+  const total = step.progress.total
+  const progressPct = total > 0 ? Math.round((answered / total) * 100) : 0
+
   return (
     <div className="flex flex-col gap-4">
       {/* 顶栏：返回 / 进度 / 计时 */}
-      <div className="sticky top-0 z-10 -mx-4 flex flex-wrap items-center gap-2 border-b bg-background/95 px-4 py-2 backdrop-blur">
-        <Link
-          href={`/sessions/${sessionId}`}
-          className="text-sm underline underline-offset-4"
-          data-testid="back-to-plan"
-        >
-          ← 计划
-        </Link>
-        <Badge variant={finished ? 'secondary' : 'default'} data-testid="interview-status">
-          {finished ? '已结束' : isFollowUp ? `追问 ${step.question?.depth}/2` : '进行中'}
-        </Badge>
-        <span className="text-sm text-muted-foreground" data-testid="progress">
-          进度 {step.progress.answered}/{step.progress.total}
-        </span>
-        {!finished ? (
-          <QuestionTimer seconds={elapsed} className="ml-auto" />
+      <div className="sticky top-0 z-10 -mx-4 border-b bg-background/95 px-4 pt-2 backdrop-blur">
+        <div className="flex flex-wrap items-center gap-2 pb-2">
+          <Link
+            href={`/sessions/${sessionId}`}
+            className="text-sm underline underline-offset-4"
+            data-testid="back-to-plan"
+          >
+            ← 计划
+          </Link>
+          <Badge variant={finished ? 'secondary' : 'default'} data-testid="interview-status">
+            {finished ? '已结束' : isFollowUp ? `追问 ${step.question?.depth}/2` : '进行中'}
+          </Badge>
+          <span className="text-sm text-muted-foreground" data-testid="progress">
+            进度 {answered}/{total}
+          </span>
+          {!finished ? (
+            <QuestionTimer seconds={elapsed} className="ml-auto" />
+          ) : null}
+        </div>
+        {!finished && total > 0 ? (
+          <Progress value={progressPct} className="mb-2 h-1.5" />
         ) : null}
       </div>
 
       <p className="text-xs text-muted-foreground">
         AI 生成内容 · 仅供练习参考，不构成任何录用判断
       </p>
+
+      {/* 面试官在场感：让对话区更有「面试间」的沉浸感 */}
+      <div className="flex items-center gap-3 rounded-xl border bg-gradient-to-br from-primary/5 to-transparent p-3">
+        <InterviewerAvatar className="size-10 text-sm" />
+        <div className="space-y-0.5">
+          <p className="text-sm font-medium">AI 面试官</p>
+          <p className="text-xs text-muted-foreground">
+            放轻松，这里没有对错，只有练习。一次只问一个问题，回答完再继续。
+          </p>
+        </div>
+      </div>
 
       <ConnectionBanner onReconnect={syncProgress} />
 
