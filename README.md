@@ -739,8 +739,14 @@ node -e "const{createHash}=require('crypto');const c='TEST-CODE-0001'.replace(/[
 `users.is_admin` **只能手动改库**，系统不提供任何自我提权接口（注册接口会忽略该字段，有测试断言）：
 
 ```sql
+-- 邮箱账号
 update users set is_admin = true where email = 'you@example.com';
+-- 手机号注册的账号可能没有邮箱，改用手机号或用户名
+update users set is_admin = true where phone = '13800138000';
+update users set is_admin = true where username = '你的用户名';
 ```
+
+提权后**无需重新登录**：`is_admin` 每次请求都从库里读（`verify-session.ts`），刷新页面即可看到入口。
 
 登录后首页与导航会出现「管理后台」入口。**该入口仅用于展示** —— 真正的访问控制在服务端 `requireAdmin()` 重新校验。
 
