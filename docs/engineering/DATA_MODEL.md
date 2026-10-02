@@ -132,6 +132,45 @@ erDiagram
 | `privacy` | 隐私政策 |
 | `ai_disclosure` | AI 生成内容与模拟性质说明 |
 
+### 2.10 `user_role` — 产品身份（B 端，见 [../design/INTERVIEWER_SIDE.md §3](../design/INTERVIEWER_SIDE.md)）
+
+| 值 | 含义 |
+|---|---|
+| `candidate` | 求职者（C 端默认） |
+| `interviewer` | 面试官 / HR / 招聘方 |
+
+> 与 `users.is_admin` **正交**：`is_admin` 是管理后台权限，`role` 是产品身份，二者互不影响。
+> V1 为单值列 + 自助切换；升级组织租户模型时本文 §3 需整体改写。
+
+### 2.11 `share_kind` — 分享方式
+
+| 值 | 触发方 | 含义 |
+|---|---|---|
+| `link` | 候选人 | 候选人生成一次性链接，持链接即可访问（可加访问码） |
+| `invite` | 面试官 | 面试官发起请求，**候选人接受后**才可读；仅限受邀人 |
+
+### 2.12 `share_status` — 分享状态机
+
+| 值 | 含义 | 允许的下一状态 |
+|---|---|---|
+| `pending` | 邀请已发出，等待候选人确认（仅 `invite`） | `active`、`declined`、`revoked` |
+| `active` | 可访问 | `revoked` |
+| `declined` | 候选人拒绝（仅 `invite`） | — |
+| `revoked` | 候选人或系统撤销 | — |
+
+> **不变量**：`link` 模式创建即 `active`（创建动作本身即授权）；
+> `invite` 模式必须经 `pending → active`，**系统不得自动替候选人同意**（AGENTS.md §7 C1）。
+
+### 2.13 `share_visibility` — 分享可见范围
+
+| 值 | 候选人可选 | 对方可见 |
+|---|---|---|
+| `summary` | 默认 | 总分、六维、优势、总评、基础建议 |
+| `full` | 需显式勾选 | 追加：待改进、参考回答、下一步建议、简历疑点、逐题反馈与证据 |
+
+> **由候选人决定，与付费墙无关**：`is_unlocked` / `entitlements` 是「能否看自己的完整报告」，
+> `visibility` 是「愿意让对方看到多少」。两者独立，别混成一个开关。
+
 ---
 
 ## 3. 表定义
@@ -151,6 +190,8 @@ erDiagram
 | `free_credits` | `integer` | NOT NULL, `>= 0` | `1` | 剩余免费面试次数 |
 | `email_verified_at` | `timestamptz` | NULL | — | Phase 1 无邮件服务，仅标记待验证 |
 | `phone_verified_at` | `timestamptz` | NULL | — | 手机号首次通过验证码校验的时间 |
+| `role` | `user_role` | NOT NULL | `candidate` | 产品身份，见 §2.10 与 INTERVIEWER_SIDE §3；**V1 单值 + 自助切换** |
+| `is_admin` | `boolean` | NOT NULL | `false` | 管理后台权限，与 `role` 正交 |
 | `terms_accepted_at` | `timestamptz` | NULL | — | 同意时间戳（C1） |
 | `created_at` | `timestamptz` | NOT NULL | `now()` | — |
 | `updated_at` | `timestamptz` | NOT NULL | `now()` | 应用层维护 |
@@ -468,6 +509,86 @@ erDiagram
 
 ---
 
+### 3.14 `report_shares` — 候选人主动授权的报告分享（B 端场景 A）
+
+> 规格见 [../design/INTERVIEWER_SIDE.md §4](../design/INTERVIEWER_SIDE.md)。
+> **存在前提**：候选人亲手创建（`link`）或亲手接受邀请（`invite`）。系统不得自动开放。
+
+| 字段 | 类型 | 约束 | 默认 | 说明 |
+|---|---|---|---|---|
+| `id` | `uuid` | PK | `gen_random_uuid()` | — |
+| `owner_id` | `uuid` | NOT NULL, FK→`users.id` CASCADE | — | **候选人**，即数据主人。**始终是 TA**，不因谁发起请求而改变 |
+| `session_id` | `uuid` | NULL, FK→`interview_sessions.id` CASCADE | — | 被分享的那一场面试。**邀请模式下先为空**，由候选人在接受时挑一场（见下方说明） |
+| `kind` | `share_kind` | NOT NULL | — | `link` / `invite`，见 §2.11 |
+| `status` | `share_status` | NOT NULL | — | 状态机见 §2.12 |
+| `token_hash` | `text` | NULL, UNIQUE | — | 链接模式的令牌，**只存哈希**（与登录会话同原则）；邀请模式为 NULL |
+| `invitee_user_id` | `uuid` | NULL, FK→`users.id` SET NULL | — | **最终获得查看权的面试官**。 invite 模式必填（否则无从做访问校验）；link 模式为 NULL |
+| `invitee_identifier` | `varchar(255)` | NULL | — | invite 模式下**用于定位候选人**的标识原文；留痕便于重发邀请与事后审计 |
+| `visibility` | `share_visibility` | NOT NULL | `summary` | 见 §2.13，**由候选人决定** |
+| `note` | `varchar(200)` | NULL | — | 候选人附言（展示给对方） |
+| `access_code_hash` | `text` | NULL | — | 可选访问码，防止链接被转后裸奔；**只存哈希** |
+| `expires_at` | `timestamptz` | NULL | — | 到期不可访问；NULL 表示不过期 |
+| `revoked_at` | `timestamptz` | NULL | — | 撤销时间，**优先级高于 expires** |
+| `view_count` | `integer` | NOT NULL, `>= 0` | `0` | 被查看次数（候选人可见） |
+| `last_viewed_at` | `timestamptz` | NULL | — | 最近一次访问 |
+| `responded_at` | `timestamptz` | NULL | — | 候选人接受/拒绝邀请的时间 |
+| `created_at` | `timestamptz` | NOT NULL | `now()` | — |
+
+**约束与索引**
+
+| 类型 | 定义 | 目的 |
+|---|---|---|
+| 唯一索引 | `report_shares_token_unique (token_hash)` | 令牌查找（访问主路径） |
+| 索引 | `report_shares_owner_idx (owner_id, created_at DESC)` | 候选人侧「我分享的」列表 |
+| 索引 | `report_shares_invitee_idx (invitee_user_id, created_at DESC)` | 面试官侧「分享给我的」列表 |
+| CHECK | `view_count >= 0` | — |
+| CHECK | `kind <> 'link' OR token_hash IS NOT NULL` | 链接模式必须有令牌 |
+| CHECK | `kind <> 'invite' OR invitee_user_id IS NOT NULL` | 邀请模式必须能判定谁能读 |
+| CHECK | `status <> 'active' OR session_id IS NOT NULL` | **生效中的分享必须指向具体一场面试**，杜绝「接受了却没选报告」的悬空记录 |
+
+> **为什么 `session_id` 可空**（这是设计权衡，不是疏漏）：
+> B 端 V1 没有「岗位 / 候选人列表」能力（见 INTERVIEWER_SIDE §3 的取舍），
+> 面试官发起邀请时**无从知道**候选人练过哪几场，只能填候选人的标识发起请求；
+> 由候选人在接受时自选要分享哪一场，此时才写 `session_id`。
+> 「是否被绕过」由上面的 CHECK 兜住，数据库层面不允许生成无指向的生效分享。
+
+**服务层不变量**
+
+- 访问判定顺序：`revoked_at IS NULL` → `status = 'active'` → `expires_at` 未到期 → 身份/令牌校验。
+  **任一不过就返回 404**（不是 403，避免泄露资源存在与否，与全项目口径一致）。
+- `invite` 模式必须校验 `invitee_user_id = 当前用户`，否则链接被转发即可越权。
+- `visibility = 'summary'` 时，付费字段**不进入返回值**（复用 `getReportBySession` 的裁剪口径）。
+- 每次成功访问写 `audit_logs`（`action = 'report.share_viewed'`）并 `view_count + 1`。
+- 分享出去的内容**不得包含任何录用相关结论**——不是前端不渲染，是响应里就没有这些字段。
+
+---
+
+### 3.15 `interview_records` — 真实面试记录与纪要（B 端场景 B，⬜ 待实现）
+
+> 面试官自己的记录工具，**不产出分数与结论**（AGENTS.md §7 C5）。
+> 反馈对象是面试官的提问行为，不是被面试者。
+
+| 字段 | 类型 | 约束 | 默认 | 说明 |
+|---|---|---|---|---|
+| `id` | `uuid` | PK | `gen_random_uuid()` | — |
+| `interviewer_id` | `uuid` | NOT NULL, FK→`users.id` CASCADE | — | 归属面试官 |
+| `title` | `varchar(200)` | NOT NULL | — | 面试标题 / 岗位名 |
+| `candidate_label` | `varchar(100)` | NULL | — | 候选人代号（**由面试官填写，不强制关联账号**） |
+| `raw_transcript` | `text` | NULL | — | 录音转写原文 |
+| `audio_storage_key` | `text` | NULL | — | 音频原件，转写后可删 |
+| `notes` | `jsonb` | NULL | — | AI 提炼的结构化纪要（`mentioned` / `to_verify` / `missed_dimensions`） |
+| `status` | `varchar(20)` | NOT NULL | `draft` | `draft` / `processing` / `ready` / `failed` |
+| `ai_model` / `prompt_version` | `varchar(100)` / `varchar(30)` | NULL | — | C4/C6 留痕 |
+| `created_at` / `updated_at` | `timestamptz` | NOT NULL | `now()` | — |
+| `deleted_at` | `timestamptz` | NULL | — | 软删除 |
+
+**索引**：`interview_records_interviewer_idx (interviewer_id, created_at DESC)`。
+
+> **刻意不设 `score` / `verdict` / `recommendation` 列**。
+> 想在库里加这些列时，先改 `INTERVIEWER_SIDE.md §1` 的边界 —— 那是一次产品定位变更，不是加字段。
+
+---
+
 ## 4. 索引策略总览
 
 | 场景 | 依赖索引 |
@@ -475,6 +596,9 @@ erDiagram
 | 登录（按邮箱查用户） | `users_email_unique` |
 | 登录（按手机号查用户） | `users_phone_unique` |
 | 登录（按用户名查用户） | `users_username_unique` |
+| 分享报告访问（按令牌查） | `report_shares_token_unique` |
+| 候选人侧分享列表 | `report_shares_owner_idx` |
+| 面试官侧被分享列表 | `report_shares_invitee_idx` |
 | 会话校验（按 token 哈希查） | `sessions_token_hash_unique` |
 | 历史记录列表 | `sessions_user_status_idx` |
 | 按序取题（面试进行中） | `questions_session_order_idx` |

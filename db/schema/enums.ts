@@ -76,6 +76,33 @@ export const unlockTypeEnum = pgEnum('unlock_type', [
 export const consentTypeEnum = pgEnum('consent_type', ['terms', 'privacy', 'ai_disclosure'])
 
 /**
+ * 产品身份（B 端面试官侧，DATA_MODEL §2.10）。
+ * 与 `users.is_admin` 正交：一个是产品身份，一个是后台权限。
+ */
+export const userRoleEnum = pgEnum('user_role', ['candidate', 'interviewer'])
+
+/**
+ * 分享方式（DATA_MODEL §2.11）。
+ * `link`：候选人主动生成链接；`invite`：面试官发起、候选人确认后才可读。
+ * 两条路径都必须有候选人的明确动作，系统不得自动开放（AGENTS.md §7 C1）。
+ */
+export const shareKindEnum = pgEnum('share_kind', ['link', 'invite'])
+
+/** 分享状态机（DATA_MODEL §2.12） */
+export const shareStatusEnum = pgEnum('share_status', [
+  'pending',
+  'active',
+  'declined',
+  'revoked',
+])
+
+/**
+ * 分享可见范围（DATA_MODEL §2.13）。
+ * 由**候选人自主选择**，与付费墙无关 —— 别把它和 `entitlements` 混成一个开关。
+ */
+export const shareVisibilityEnum = pgEnum('share_visibility', ['summary', 'full'])
+
+/**
  * 面试**编排阶段**（微观）。
  * 与 sessionStatusEnum 的关系见 docs/engineering/ARCHITECTURE.md §3.6.1。
  */

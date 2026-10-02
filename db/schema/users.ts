@@ -12,7 +12,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core'
 
-import { membershipLevelEnum } from './enums'
+import { membershipLevelEnum, userRoleEnum } from './enums'
 
 /**
  * users —— 用户
@@ -56,6 +56,16 @@ export const users = pgTable(
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
     /** 同意条款时间戳（AGENTS.md §7 C1） */
     termsAcceptedAt: timestamp('terms_accepted_at', { withTimezone: true }),
+
+    /**
+     * 产品身份（B 端，DATA_MODEL §2.10）。**V1 为单值列 + 自助切换**：
+     * 一个自然人可能同时是求职者与面试官，完整方案是 `organizations + memberships`，
+     * 但那需要重写三张主表的归属列与全部查询，V1 收益不足，取舍记录见
+     * docs/design/INTERVIEWER_SIDE.md §3。
+     *
+     * 与 `isAdmin` **正交**：这里管「能用哪一侧的功能」，那边管「能不能进后台」。
+     */
+    role: userRoleEnum('role').notNull().default('candidate'),
 
     /**
      * 管理员标识（管理后台访问控制）。

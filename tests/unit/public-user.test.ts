@@ -16,6 +16,7 @@ const row: User = {
   freeCredits: 1,
   emailVerifiedAt: null,
   termsAcceptedAt: new Date('2026-01-01T00:00:00.000Z'),
+  role: 'candidate',
   isAdmin: false,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),

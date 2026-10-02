@@ -71,6 +71,20 @@
       "when": 1790765737847,
       "tag": "0009_woozy_giant_man",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790940108687,
+      "tag": "0010_dashing_lyja",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790940702162,
+      "tag": "0011_funny_zaran",
+      "breakpoints": true
     }
   ]
 }
