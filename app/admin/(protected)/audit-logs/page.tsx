@@ -1,7 +1,6 @@
-import { notFound } from 'next/navigation'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { getAdminOrNull } from '@/lib/api/admin-guard'
+import { requireAdminPageUser } from '@/lib/api/guard'
 import { listAuditLogs } from '@/lib/services/handlers/admin-service'
 
 export const metadata = { title: '审计日志' }
@@ -13,9 +12,10 @@ export const dynamic = 'force-dynamic'
  * **刻意不提供删除/修改入口**：审计日志只增不改（AGENTS.md §7 C6）。
  */
 export default async function AdminAuditLogsPage() {
-  // 必须在本页最早处守卫：layout 与 page 并行渲染，layout 的 notFound() 拦不住本页取数
-  const admin = await getAdminOrNull()
-  if (!admin) notFound()
+  // 必须在本页最早处守卫：layout 与 page 并行渲染，layout 的守卫拦不住本页取数。
+  // 这里用**重定向**而不是 notFound()：后台页面是给人用的，未登录时 layout 同样
+  // 重定向到 /admin/login，若本页抛 404，两个响应会打架（结果取决于渲染时序）。
+  await requireAdminPageUser()
 
   const logs = await listAuditLogs()
 

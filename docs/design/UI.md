@@ -28,8 +28,24 @@
 | **`/membership`** | **会员与权益**（本文 §6 详述） | 需登录 | ✅ |
 | `/orders` | 订单记录（付费入口，展示 `payments`） | 需登录 | ✅ |
 | `/reports/[id]` | 报告直达链接（重定向到 `/sessions/[id]/report`） | 需登录 + 归属校验 | ⬜ 待补 |
-| **`/admin`** | **管理后台概览**（本文 §8 详述） | **需管理员** | ✅ |
-| `/admin/users` · `/admin/sessions` · `/admin/orders` · `/admin/logs` | 后台子页 | 需管理员 | ✅ |
+| **`/admin`** | **管理后台概览**（本文 §8 详述） | **需管理端会话**（无则重定向 `/admin/login`） | ✅ |
+| `/admin/users` · `/admin/sessions` · `/admin/orders` · `/admin/logs` | 后台子页 | 需管理端会话 | ✅ |
+| **`/admin/login`** | **管理端登录**（独立于用户端，用户侧无任何入口） | 匿名可访问；已有管理端会话则跳 `/admin` | ✅ |
+
+**用户端与管理端完全分离**
+
+| 维度 | 用户端 | 管理端 |
+|---|---|---|
+| 登录页 | `/login`（先选方式 → 再选身份） | `/admin/login`（仅账号 + 密码） |
+| 会话 | `sessions.kind='user'`，Cookie `ai_interview_session` | `sessions.kind='admin'`，Cookie `ai_interview_admin_session` |
+| 接口 | `/api/auth/login` · `/logout` | `/api/auth/admin/login` · `/admin/logout` |
+| 限流 | `auth.login`（60s/10） | `auth.admin_login`（60s/5，**独立配额**） |
+| 后台入口显示 | 仅当持有**管理端会话**时才出现（管理员用用户端账号登录时不显示） | — |
+
+> 路由结构上，受保护的后台页面收在 `app/admin/(protected)/` 路由组内，
+> 守卫写在组的 `layout.tsx` 上。若守卫写在 `app/admin/layout.tsx`，
+> 会让 `/admin/login` 被自己的守卫拦成 404 —— 表现为「后台登录页打不开」，
+> 而日志里只有一条 404，极难定位。
 
 **布局分组**
 
@@ -419,9 +435,16 @@
 
 ## 8. 管理后台 `/admin`
 
-> **访问控制**：`users.is_admin = true` 才能访问。非管理员访问任何 `/admin` 页面或 API
-> **一律返回 404**（与全项目一致：不泄露资源/入口是否存在）。
-> 管理员身份**只能手动改库提升**，系统不提供任何自我提权接口。
+> **访问控制**：必须是**管理端会话**（`sessions.kind='admin'`）且 `users.is_admin = true`。
+>
+> - 未登录 / 拿的是用户端会话 → 页面**重定向 `/admin/login`**，API 返回 **401**
+> - 管理端会话但账号已非管理员 → **404**（与全项目一致：不泄露资源/入口是否存在）
+>
+> 页面与接口处理不同的原因：后台页面是给人用的，404 会让真正的管理员一头雾水；
+> 而重定向不泄露任何信息（它对所有人一视同仁）。接口层没有「跳转」语义，保持 401/404。
+>
+> 管理员身份**只能手动改库提升**，系统不提供任何自我提权接口；
+> `is_admin` 每次请求都从库里读，撤销后立即生效。
 
 ### 8.1 路由与页面
 

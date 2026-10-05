@@ -161,7 +161,28 @@ erDiagram
 > **不变量**：`link` 模式创建即 `active`（创建动作本身即授权）；
 > `invite` 模式必须经 `pending → active`，**系统不得自动替候选人同意**（AGENTS.md §7 C1）。
 
-### 2.13 `share_visibility` — 分享可见范围
+### 2.13 `session_kind` — 会话归属端（用户端 / 管理端分离）
+
+| 值 | 含义 | Cookie |
+|---|---|---|
+| `user` | 用户端会话（默认） | `ai_interview_session` |
+| `admin` | 管理端会话 | `ai_interview_admin_session` |
+
+**用户端与管理端完全分离**，三条规则缺一不可：
+
+1. **入口分开**：用户端 `/login`、管理端 `/admin/login`；用户端任何页面都不出现后台链接
+2. **会话自带归属**：`sessions.kind` 决定这条会话属于哪一端，**两端互不认**
+3. **Cookie 名不同**：管理员可同时持有两端会话，互不顶掉
+
+> **Cookie 名不是安全边界**：客户端随时能改 Cookie 名，
+> 把用户端会话改名递给后台接口是 trivially 可行的。
+> 真正的判定必须来自服务端存储的 `sessions.kind`。
+>
+> **为什么值得这么麻烦**：管理员在用户侧被钓鱼时，攻击者拿到的是 `kind='user'` 的会话，
+> 碰不到后台；反之后台会话也不用于用户端接口。若两端互认，
+> 「分离」就只剩界面上少一个链接，形同虚设。
+
+### 2.14 `share_visibility` — 分享可见范围
 
 | 值 | 候选人可选 | 对方可见 |
 |---|---|---|
@@ -452,6 +473,7 @@ erDiagram
 |---|---|---|---|---|
 | `id` | `uuid` | PK | `gen_random_uuid()` | 同时作为 Cookie 中的会话标识 |
 | `user_id` | `uuid` | NOT NULL, FK→`users.id` CASCADE | — | 归属 |
+| `kind` | `session_kind` | NOT NULL | `user` | **属于哪一端**，见 §2.13；两端互不认对方的会话 |
 | `token_hash` | `text` | NOT NULL, UNIQUE | — | **只存哈希**，Cookie 持原文 |
 | `expires_at` | `timestamptz` | NOT NULL | — | 失效时间 |
 | `revoked_at` | `timestamptz` | NULL | — | 退出登录时置位 |
@@ -524,7 +546,7 @@ erDiagram
 | `token_hash` | `text` | NULL, UNIQUE | — | 链接模式的令牌，**只存哈希**（与登录会话同原则）；邀请模式为 NULL |
 | `invitee_user_id` | `uuid` | NULL, FK→`users.id` SET NULL | — | **最终获得查看权的面试官**。 invite 模式必填（否则无从做访问校验）；link 模式为 NULL |
 | `invitee_identifier` | `varchar(255)` | NULL | — | invite 模式下**用于定位候选人**的标识原文；留痕便于重发邀请与事后审计 |
-| `visibility` | `share_visibility` | NOT NULL | `summary` | 见 §2.13，**由候选人决定** |
+| `visibility` | `share_visibility` | NOT NULL | `summary` | 见 §2.14，**由候选人决定** |
 | `note` | `varchar(200)` | NULL | — | 候选人附言（展示给对方） |
 | `access_code_hash` | `text` | NULL | — | 可选访问码，防止链接被转后裸奔；**只存哈希** |
 | `expires_at` | `timestamptz` | NULL | — | 到期不可访问；NULL 表示不过期 |

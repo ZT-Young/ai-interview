@@ -97,7 +97,16 @@ export const shareStatusEnum = pgEnum('share_status', [
 ])
 
 /**
- * 分享可见范围（DATA_MODEL §2.13）。
+ * 会话属于哪一端（DATA_MODEL §2.14）。
+ *
+ * **用户端与管理端完全分离**的关键：登录入口分开还不够 ——
+ * 若两端共用同一条会话，那么「在用户端登录过的管理员」被钓鱼页面诱导时，
+ * 后台接口仍会放行。因此会话必须自带归属，且 Cookie 名也不同。
+ */
+export const sessionKindEnum = pgEnum('session_kind', ['user', 'admin'])
+
+/**
+ * 分享可见范围（DATA_MODEL §2.14）。
  * 由**候选人自主选择**，与付费墙无关 —— 别把它和 `entitlements` 混成一个开关。
  */
 export const shareVisibilityEnum = pgEnum('share_visibility', ['summary', 'full'])

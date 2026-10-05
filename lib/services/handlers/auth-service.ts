@@ -452,6 +452,57 @@ export async function login(input: LoginInput, meta: RequestMeta = {}): Promise<
 }
 
 /**
+ * 管理端登录 —— 与用户端**完全分离**的一条独立路径。
+ *
+ * 与 `login()` 的三点差异：
+ * 1. 产出的是 `kind='admin'` 的会话，写入**另一个** Cookie
+ * 2. 账号不是管理员时，返回与「密码错误」**完全一致**的错误
+ *    （不能提示「你不是管理员」—— 那等于帮攻击者确认该账号存在且可登录用户端）
+ * 3. **不改 `users.role`**：管理员也可能要用求职者/面试官身份，
+ *    进后台不应把用户端的身份挤掉
+ *
+ * 复用 `login()` 的凭证校验而不是另写一套，是为了避免两处密码/验证码逻辑走偏。
+ */
+export async function loginAdmin(
+  input: LoginInput,
+  meta: RequestMeta = {},
+): Promise<AuthResult> {
+  const result = await login(input, meta)
+
+  if (!result.user.isAdmin) {
+    // 关键：先把刚建的用户端会话撤销掉，别留下一条能用的普通会话
+    await logout(result.token)
+    throw unauthorized('账号或密码不正确')
+  }
+
+  const db = getDb()
+  // 重新签发一条管理端会话（kind='admin'），原用户端会话已作废
+  const token = generateSessionToken()
+  const expiresAt = sessionExpiry()
+  const ip = parseIp(meta.ip)
+
+  await db.insert(sessions).values({
+    userId: result.user.id,
+    tokenHash: hashSessionToken(token),
+    kind: 'admin',
+    expiresAt,
+    ip,
+    userAgent: meta.userAgent ?? null,
+  })
+
+  await db.insert(auditLogs).values({
+    actorId: result.user.id,
+    action: 'auth.admin_login',
+    targetType: 'user',
+    targetId: result.user.id,
+    ip,
+    userAgent: meta.userAgent ?? null,
+  })
+
+  return { user: result.user, token, expiresAt }
+}
+
+/**
  * 退出登录：置 revoked_at 使会话**立即失效**（这正是选择数据库会话而非 JWT 的原因）。
  * 幂等：令牌不存在或已失效时不报错。
  */

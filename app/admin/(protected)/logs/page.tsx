@@ -1,9 +1,8 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { getAdminOrNull } from '@/lib/api/admin-guard'
+import { requireAdminPageUser } from '@/lib/api/guard'
 import { listAiLogs } from '@/lib/services/handlers/admin-service'
 
 export const metadata = { title: 'AI 与错误日志' }
@@ -32,9 +31,10 @@ export default async function AdminLogsPage({
 }: {
   searchParams: { status?: string }
 }) {
-  // 必须在本页最早处守卫：layout 与 page 并行渲染，layout 的 notFound() 拦不住本页取数
-  const admin = await getAdminOrNull()
-  if (!admin) notFound()
+  // 必须在本页最早处守卫：layout 与 page 并行渲染，layout 的守卫拦不住本页取数。
+  // 这里用**重定向**而不是 notFound()：后台页面是给人用的，未登录时 layout 同样
+  // 重定向到 /admin/login，若本页抛 404，两个响应会打架（结果取决于渲染时序）。
+  await requireAdminPageUser()
 
   const status = searchParams.status === 'error' ? 'error' : searchParams.status === 'success' ? 'success' : undefined
   const logs = await listAiLogs(status ? { status } : {})

@@ -1,8 +1,12 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { resolveSessionUser, type AuthenticatedUser } from '@/lib/auth/verify-session'
-import { SESSION_COOKIE_NAME } from '@/lib/auth/session'
+import {
+  resolveAdminSessionUser,
+  resolveSessionUser,
+  type AuthenticatedUser,
+} from '@/lib/auth/verify-session'
+import { ADMIN_SESSION_COOKIE_NAME, SESSION_COOKIE_NAME } from '@/lib/auth/session'
 
 import { unauthorized } from './errors'
 
@@ -41,6 +45,37 @@ export async function requirePageUser(): Promise<AuthenticatedUser> {
 export async function optionalUser(): Promise<AuthenticatedUser | null> {
   const token = cookies().get(SESSION_COOKIE_NAME)?.value
   return resolveSessionUser(token)
+}
+
+/**
+ * 管理端守卫（API 用）：必须是**管理端会话** + `is_admin`。
+ *
+ * 与 `requireUser()` 的关系：两者**完全独立**。
+ * 用户端会话再怎么有 `is_admin` 也进不了后台，反之后台会话也不用于用户端接口。
+ */
+export async function requireAdminUser(): Promise<AuthenticatedUser> {
+  const token = cookies().get(ADMIN_SESSION_COOKIE_NAME)?.value
+  const user = await resolveAdminSessionUser(token)
+  if (!user) throw unauthorized()
+  return user
+}
+
+/**
+ * 管理端守卫（页面用）：未登录或不是管理端会话 → 重定向到**管理端登录页**。
+ *
+ * 注意重定向目标是 `/admin/login` 而不是 `/login`：
+ * 用户端登录页不应知道后台的存在，这是「用户端看不到管理端」的一部分。
+ */
+export async function requireAdminPageUser(): Promise<AuthenticatedUser> {
+  const admin = await optionalAdminUser()
+  if (!admin) redirect('/admin/login')
+  return admin
+}
+
+/** 可选的管理端鉴权：用于「登录与否都能访问」的页面（如后台登录页自身） */
+export async function optionalAdminUser(): Promise<AuthenticatedUser | null> {
+  const token = cookies().get(ADMIN_SESSION_COOKIE_NAME)?.value
+  return resolveAdminSessionUser(token)
 }
 
 /** 读取当前请求的客户端信息，供审计日志使用 */

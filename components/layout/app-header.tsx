@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 import { AppNav, type AppNavUser } from '@/components/layout/app-nav'
-import { optionalUser } from '@/lib/api/guard'
+import { optionalAdminUser, optionalUser } from '@/lib/api/guard'
 import { isFreeMode } from '@/lib/config/free-mode'
 
 /**
@@ -16,14 +16,23 @@ export async function AppHeader() {
   const user = await optionalUser()
   if (!user) return null
 
+  /**
+   * 后台入口只在**确实持有管理端会话**时出现。
+   *
+   * 与 `user.isAdmin` 的区别很关键：管理员用用户端账号登录时 `isAdmin` 仍为 true，
+   * 但此时 TA 是作为普通用户在用产品 —— 用户端界面不该出现任何后台痕迹。
+   * （真正的访问控制始终在服务端，这里只是不给人看不该看的东西。）
+   */
+  const adminSession = await optionalAdminUser()
+
   const viewUser: AppNavUser = {
     email: user.email,
     username: user.username,
     name: user.name,
     membership: user.membership,
     freeCredits: user.freeCredits,
-    isAdmin: user.isAdmin,
     role: user.role,
+    hasAdminSession: adminSession !== null,
   }
 
   return (

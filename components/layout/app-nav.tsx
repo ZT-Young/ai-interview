@@ -65,12 +65,19 @@ export interface AppNavUser {
   name: string | null
   membership: string
   freeCredits: number
-  isAdmin: boolean
   /**
    * 当前身份：`candidate` 求职者 / `interviewer` 面试官（DATA_MODEL §2.10）。
    * 决定导航里出现哪一套入口：求职者看「简历 / JD / 面试」，面试官看「面试官工作台」。
    */
   role: 'candidate' | 'interviewer'
+  /**
+   * 是否持有**管理端会话**（与 `isAdmin` 不是一回事）。
+   *
+   * 用户端与管理端分离后，后台入口的显示条件从「账号是管理员」
+   * 收紧为「**确实在管理端登录过**」。管理员用用户端账号登录时，
+   * 用户端界面里不应该出现任何后台痕迹。
+   */
+  hasAdminSession: boolean
 }
 
 /**
@@ -174,7 +181,7 @@ export function AppNav({ user, freeMode = false }: { user: AppNavUser; freeMode?
             {loggingOut ? '退出中…' : '退出'}
           </Button>
 
-          {user.isAdmin ? (
+          {user.hasAdminSession ? (
             <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
               <Link href="/admin">后台</Link>
             </Button>
@@ -219,7 +226,7 @@ export function AppNav({ user, freeMode = false }: { user: AppNavUser; freeMode?
                 </Link>
               )
             })}
-            {user.isAdmin ? (
+            {user.hasAdminSession ? (
               <Link
                 href="/admin"
                 className="flex items-center gap-3 rounded-md px-2 py-2.5 text-sm text-muted-foreground"

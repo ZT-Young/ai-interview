@@ -8,7 +8,18 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
  * 用 AUTH_SECRET 作为 HMAC 密钥，使哈希无法在库外离线复现。
  */
 
+/** 用户端会话 Cookie */
 export const SESSION_COOKIE_NAME = 'ai_interview_session'
+/**
+ * 管理端会话 Cookie —— **与用户端是不同的名字**。
+ *
+ * 分开的意义：管理员可以同时持有两端会话而不互相顶掉
+ * （在后台干活时，用户端的登录态不受影响；反之亦然）。
+ *
+ * 但要清楚：**Cookie 名不是安全边界**，客户端随时能改名。
+ * 真正的判定在 `sessions.kind`（服务端存储），见 verify-session.ts。
+ */
+export const ADMIN_SESSION_COOKIE_NAME = 'ai_interview_admin_session'
 /** 会话有效期 30 天 */
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 const TOKEN_BYTES = 32

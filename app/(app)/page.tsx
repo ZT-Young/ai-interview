@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { optionalUser } from '@/lib/api/guard'
+import { optionalAdminUser, optionalUser } from '@/lib/api/guard'
 import { isFreeMode } from '@/lib/config/free-mode'
 import { listSessions } from '@/lib/services/handlers/session-service'
 
@@ -34,6 +34,14 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function WorkbenchPage() {
   const user = await optionalUser()
   if (!user) redirect('/login')
+  /**
+   * 后台入口只在**确实持有管理端会话**时出现，与导航栏同一套判定
+   * （`components/layout/app-nav.tsx`）。
+   *
+   * 不要用 `user.isAdmin`：管理员作为普通用户使用时这里不该有任何后台痕迹 ——
+   * 用户端与管理端分离后，「是管理员」不等于「正在后台登录」。
+   */
+  const hasAdminSession = (await optionalAdminUser()) !== null
   // 面试者工作台只服务于求职者身份；面试官误入时直接送到自己那一侧，
   // 不让 TA 对着一堆练习入口发呆（身份可随时切回，见 /interviewer 的切换入口）
   if (user.role === 'interviewer') redirect('/interviewer')
@@ -111,7 +119,7 @@ export default async function WorkbenchPage() {
                   <Link href="/membership">会员权益</Link>
                 </Button>
               ) : null}
-              {user.isAdmin ? (
+              {hasAdminSession ? (
                 <Button asChild variant="secondary" size="sm">
                   <Link href="/admin">管理后台</Link>
                 </Button>

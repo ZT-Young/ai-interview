@@ -10,6 +10,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core'
 
+import { sessionKindEnum } from './enums'
 import { users } from './users'
 
 /**
@@ -27,6 +28,14 @@ export const sessions = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     /** token 的 HMAC-SHA256 哈希（hex） */
     tokenHash: text('token_hash').notNull(),
+    /**
+     * 会话归属端：`user` 用户端 / `admin` 管理端。
+     *
+     * **为什么必须落在库里**：只靠两个 Cookie 名区分是不够的 ——
+     * Cookie 名是客户端可篡改的（改个名字就能把用户端会话递给后台接口），
+     * 真正的判定必须来自服务端存储。两端互认会直接击穿「分离」的意义。
+     */
+    kind: sessionKindEnum('kind').notNull().default('user'),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     /** 退出登录时置位，实现立即失效 */
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
@@ -37,6 +46,8 @@ export const sessions = pgTable(
   (table) => ({
     tokenHashUnique: uniqueIndex('sessions_token_hash_unique').on(table.tokenHash),
     userIdx: index('sessions_user_idx').on(table.userId),
+    /** 管理端「踢下线」/ 审计按端筛选 */
+    kindIdx: index('sessions_kind_idx').on(table.kind),
     expiresIdx: index('sessions_expires_idx').on(table.expiresAt),
     // 会话必须晚于创建时间失效
     expiresAfterCreatedCheck: check(

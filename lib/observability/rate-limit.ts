@@ -103,6 +103,13 @@ export const defaultRateLimitStore: RateLimitStore = new InMemoryRateLimitStore(
  */
 export const RATE_LIMIT_RULES = {
   'auth.login': { windowMs: 60_000, max: 10 },
+  /**
+   * 管理端登录：独立配额，且比用户端更紧。
+   *
+   * 独立的原因是「后台被撞库不该消耗用户端额度」，反过来也一样 ——
+   * 否则攻击者只要持续打后台登录，就能把正常用户的登录也限死。
+   */
+  'auth.admin_login': { windowMs: 60_000, max: 5 },
   'auth.register': { windowMs: 60_000, max: 5 },
   /**
    * 短信验证码：即便当前是「固定 8888」的模拟发送也要限流 ——

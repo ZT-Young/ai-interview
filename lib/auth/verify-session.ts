@@ -50,10 +50,16 @@ function toAuthenticatedUser(row: User): AuthenticatedUser {
 /**
  * 校验会话令牌并返回当前用户。
  *
- * 同时校验：会话未撤销、未过期、用户未被软删除。
+ * 同时校验：会话未撤销、未过期、用户未被软删除、**会话属于指定端**。
  * 任一不满足返回 null（调用方统一映射为 401，不区分具体原因，避免信息泄露）。
+ *
+ * @param kind 期望的会话归属端。用户端接口传 `'user'`，后台接口传 `'admin'`。
+ *   **两端互不认对方的会话** —— 这是「管理端与用户端完全分离」的落点。
  */
-export async function resolveSessionUser(token: string | undefined): Promise<AuthenticatedUser | null> {
+export async function resolveSessionUser(
+  token: string | undefined,
+  kind: 'user' | 'admin' = 'user',
+): Promise<AuthenticatedUser | null> {
   if (!token) return null
 
   const tokenHash = hashSessionToken(token)
@@ -66,6 +72,7 @@ export async function resolveSessionUser(token: string | undefined): Promise<Aut
     .where(
       and(
         eq(sessions.tokenHash, tokenHash),
+        eq(sessions.kind, kind),
         isNull(sessions.revokedAt),
         gt(sessions.expiresAt, new Date()),
         isNull(users.deletedAt),
@@ -80,4 +87,21 @@ export async function resolveSessionUser(token: string | undefined): Promise<Aut
   if (!safeCompareHash(row.session.tokenHash, tokenHash)) return null
 
   return toAuthenticatedUser(row.user)
+}
+
+/**
+ * 管理端会话校验：必须是 `kind='admin'` 的会话 **且** 账号 `is_admin`。
+ *
+ * 两道条件缺一不可：
+ * - 只看 Cookie 名 → 客户端改个名字就能把用户端会话递过来
+ * - 只看 is_admin → 管理员在用户端登录产生的会话也能进后台，
+ *   于是「两端分离」形同虚设，且钓鱼页面可直接借用它操作后台
+ */
+export async function resolveAdminSessionUser(
+  token: string | undefined,
+): Promise<AuthenticatedUser | null> {
+  const user = await resolveSessionUser(token, 'admin')
+  if (!user) return null
+  if (!user.isAdmin) return null
+  return user
 }
