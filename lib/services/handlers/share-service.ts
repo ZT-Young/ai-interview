@@ -501,7 +501,7 @@ function summaryOnly(report: Record<string, unknown>): Record<string, unknown> {
   return out
 }
 
-/** 测试与种子数据用：生成 token 原文 */
-export function generateShareToken(): string {
-  return randomBytes(TOKEN_BYTES).toString('hex')
-}
+/**
+ * token 原文只在 `createLinkShare` / `createInvite` 内部生成并立即哈希，
+ * 不对外提供独立的生成器 —— 明文 token 一旦流出就是永久的访问凭证。
+ */

@@ -32,15 +32,17 @@ import { RESUME_FILE_TYPES, type ResumeFileType } from '@/lib/validators/resume'
 export const MAX_UPLOAD_BYTES = MAX_FILE_BYTES
 const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'doc', 'png', 'jpg', 'jpeg', 'webp'] as const
 
-/** 测试注入点：替换 LLM / 存储端口，避免真实调用 */
-let portsOverride: ParsePorts | undefined
-
-export function __setParsePortsForTest(ports: ParsePorts | undefined): void {
-  portsOverride = ports
-}
-
+/**
+ * 生产环境端口。
+ *
+ * 这里曾经留过一个 `portsOverride` + `__setParsePortsForTest` 的注入开关，
+ * 实际**无人调用**（测试都是直接调 service 并传入 `createDefaultPorts()` 的返回值
+ * 或 fake）。留着只是让读代码的人以为「端口可以从外部换掉」，而 `?? ` 右支永远走不到。
+ *
+ * 需要替换实现时改这一处即可（也可按项目约定在 service 层暴露注入点）。
+ */
 export function resolvePorts(): ParsePorts {
-  return portsOverride ?? createDefaultPorts()
+  return createDefaultPorts()
 }
 
 export type ResourceKind = 'resume' | 'job_jd'

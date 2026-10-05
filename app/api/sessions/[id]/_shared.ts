@@ -7,18 +7,18 @@ import type { OrchestrationPorts } from '@/lib/services/handlers/orchestration-s
 /**
  * 面试编排路由的共用部分。
  *
- * 与解析/出题保持一致：LLM 端口可注入，测试用 fake 覆盖，
- * 避免真实调用（AGENTS.md §4：复杂 AI 逻辑只在 lib/ai 与其服务层）。
+ * 复杂 AI 逻辑只在 lib/ai 与其服务层（AGENTS.md §4），路由只负责取默认端口并转发。
  */
 
-let portsOverride: OrchestrationPorts | undefined
-
-export function __setOrchestrationPortsForTest(ports: OrchestrationPorts | undefined): void {
-  portsOverride = ports
-}
-
+/**
+ * 生产环境端口。
+ *
+ * 这里曾经留过 `portsOverride` + `__setOrchestrationPortsForTest`，实际**无人调用**
+ * （`?? ` 右支永远走不到），已删除 —— 与 `plan/route.ts` 的处理保持一致。
+ * 需要替换实现时改这一处即可。
+ */
 export function resolveOrchestrationPorts(): OrchestrationPorts {
-  return portsOverride ?? { llm: new OpenAiCompatibleLlm() }
+  return { llm: new OpenAiCompatibleLlm() }
 }
 
 export interface SessionRouteContext {

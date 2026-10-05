@@ -245,7 +245,7 @@ export async function parseWithRetry<S extends z.ZodTypeAny>(
   }
 }
 
-/** 从成功的信封结果中取出 data 部分 */
-export function envelopeData<T>(envelope: { data: T }): T {
-  return envelope.data
-}
+/**
+ * 成功结果就是 `{ ok: true, data }`，调用方直接取 `.data`，
+ * 这里不需要 `envelopeData()` 这样的一行转发。
+ */

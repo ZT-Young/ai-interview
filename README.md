@@ -392,7 +392,7 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 │   ├── legal/[doc]/            # 隐私政策 · 用户协议
 │   ├── layout.tsx · globals.css · error.tsx · not-found.tsx（`/` 由 (app)/page.tsx 提供）
 ├── components/
-│   ├── ui/                     # 无业务语义的原子组件（button · card · dialog · empty-state …）
+│   ├── ui/                     # 无业务语义的原子组件（button · card · badge · progress …）
 │   ├── layout/                 # 应用骨架（app-nav · app-header）
 │   └── features/<领域>/         # admin · auth · interview · membership · parse · plan · report · sessions · settings
 ├── lib/

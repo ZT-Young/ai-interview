@@ -216,11 +216,10 @@ export const LEGAL_DOCUMENTS: Record<LegalType, LegalDocument> = {
   },
 }
 
-export const LEGAL_TYPES_LABELS: Record<LegalType, string> = {
-  terms: '用户协议',
-  privacy: '隐私政策',
-  ai_disclosure: 'AI 生成内容说明',
-}
+/**
+ * 文档标题已包含在各自的 `LegalDocument.title` 里（`listLegalDocuments()` 可拿到），
+ * 不需要另设一张 `LEGAL_TYPES_LABELS` 映射表 —— 两张表会各自漂移。
+ */
 
 export function isLegalType(value: string): value is LegalType {
   return (LEGAL_TYPES as readonly string[]).includes(value)

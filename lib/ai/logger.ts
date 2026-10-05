@@ -75,26 +75,10 @@ async function write(record: AiCallRecord & { status: 'success' | 'error' }): Pr
   }
 }
 
-/** 便捷包装：记录一次 AI 调用的成功与失败（自动计时） */
-export async function withAiLogging<T>(
-  record: Omit<AiCallRecord, 'durationMs'>,
-  run: () => Promise<T>,
-): Promise<T> {
-  const startedAt = Date.now()
-
-  try {
-    const result = await run()
-    void logAiSuccess({ ...record, durationMs: Date.now() - startedAt })
-    return result
-  } catch (error) {
-    void logAiError({
-      ...record,
-      durationMs: Date.now() - startedAt,
-      errorCode: typeof error === 'object' && error !== null && 'code' in error
-        ? String((error as { code: unknown }).code)
-        : 'unknown',
-      errorMessage: error instanceof Error ? error.message : error,
-    })
-    throw error
-  }
-}
+/**
+ * 记录一次 AI 调用：成功调 `logAiSuccess`，失败调 `logAiError`。
+ *
+ * 这里曾经有一个 `withAiLogging` 包装器（自动计时 + try/catch），但**无人调用** ——
+ * 各服务都是自己计时并显式调用下面两个函数（失败路径往往需要补充额外上下文，
+ * 包装器反而包不住）。留着一个没人用的抽象会让人以为「该走包装器」。
+ */

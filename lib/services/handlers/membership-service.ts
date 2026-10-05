@@ -103,9 +103,8 @@ export async function listOrders(userId: string, limit = 50): Promise<OrderView[
   }))
 }
 
-/** 列表计数（用于「历史记录」等分页展示） */
-export async function countOrders(userId: string): Promise<number> {
-  const db = getDb()
-  const rows = await db.select({ id: payments.id }).from(payments).where(eq(payments.userId, userId))
-  return rows.length
-}
+/**
+ * 订单列表目前**不分页**（`listOrders` 一次性返回，订单量级很小）。
+ * 真要分页时在这里加 `countOrders`，并改用 `count(*)` ——
+ * 之前那版是 `select id` 再取 `length`，会把整表 id 捞进内存。
+ */

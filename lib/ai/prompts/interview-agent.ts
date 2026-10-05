@@ -83,7 +83,10 @@ export function buildObservationMessage(result: ToolResult): string {
   return `【第 N 轮 · ${result.name}${argument} · ${status}】\n${result.output}`
 }
 
-/** 兼容 PromptTemplate 形态（部分调用方按 system/user 取值） */
-export function buildInterviewAgentPrompt(input: InterviewAgentSystemInput): PromptTemplate {
-  return { system: buildInterviewAgentSystem(input), user: '' }
-}
+/**
+ * Agent 的提示词是**纯 system 形态**（`lib/ai/agent/loop.ts` 直接取
+ * `buildInterviewAgentSystem()` 的返回值），没有 user 部分。
+ * 这里曾经有一个包装成 `PromptTemplate`（system+user）的版本，
+ * 注释还写着「部分调用方按 system/user 取值」—— 实际没有任何调用方，
+ * 属于虚构出来的兼容性需求，已删除。
+ */

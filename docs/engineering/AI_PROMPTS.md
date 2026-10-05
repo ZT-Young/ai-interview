@@ -44,6 +44,18 @@ N5 敏感信息：禁止输出或推断年龄、性别、婚育、宗教、政�
 
 **后置校验**：`lib/parsing/verify.ts` 对模型输出做二次扫描（见 §7）。
 
+### 0.4 prompt 模块不要做 barrel 聚合
+
+每个 prompt 模块都导出**同名**的 `PROMPT_VERSION`（形如 `parse.jd@1` / `plan@1` /
+`evaluation@1`）。因此 `lib/ai/prompts/index.ts` **不能**写 `export * from './parse'` ——
+会产生 TS2308「Module has already exported a member named 'PROMPT_VERSION'」歧义。
+
+历史上这里用「显式具名导出 + `PROMPT_VERSION as PARSE_PROMPT_VERSION` 重命名」绕过，
+但那个 barrel 实际**无人 import**（调用方都是直接从具体模块导入），已于清理时删除。
+
+> 结论：**直接从具体模块导入**（`from '@/lib/ai/prompts/parse'`），不要建聚合入口。
+> 若将来确实需要聚合，必须对每个模块的 `PROMPT_VERSION` 做前缀重命名，否则编译不过。
+
 ---
 
 ## 1. JD 解析

@@ -97,7 +97,12 @@ export function computeEntitlements(input: EntitlementInput): Entitlements {
   }
 }
 
-/** 读取某用户已消耗的免费额度次数（成功发放的 free_trial 凭证数） */
+/**
+ * 读取某用户已消耗的免费额度次数（成功发放的 free_trial 凭证数）。
+ *
+ * 以 `payments` 为权威而不是 `users.free_credits`：后者是**剩余**额度，会被
+ * 管理员手动调整（`admin-service` 的调整免费次数），两者并非简单的加减关系。
+ */
 export async function countConsumedFreeTrials(userId: string): Promise<number> {
   const db = getDb()
   const rows = await db
