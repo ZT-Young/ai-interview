@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { Alert, Input, Label } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { api, ApiClientError } from '@/lib/http/api-client'
+import { homePathForRole, ROLE_OPTIONS, type Role } from './role-options'
 
 /** 与 lib/validators/auth.ts 的 phoneSchema 保持一致（仅用于前端即时提示） */
 const PHONE_RE = /^1[3-9]\d{9}$/
@@ -13,13 +14,19 @@ const PHONE_RE = /^1[3-9]\d{9}$/
 type Mode = 'password' | 'code'
 
 /**
- * 登录表单：用户名 / 手机号 / 邮箱 任一标识 + 密码或验证码。
+ * 登录表单：先选**登录方式**，再选**身份**，最后填凭证。
  *
+ * 顺序是刻意的产品决策：
+ * - 登录方式决定「要填什么」（密码 vs 验证码 + 手机号）
+ * - 身份决定「登录后去哪」（`/` 工作台 vs `/interviewer` 面试官工作台）
+ *
+ * 身份只是**当前身份**（V1 单值列），切换不丢任何数据 —— 同一个人可以上午练、下午看别人的。
  * 失败提示由服务端统一给出（不区分账号不存在与凭证错误，防账号枚举）。
  */
-export function LoginForm() {
+export function LoginForm({ initialRole = 'candidate' }: { initialRole?: Role }) {
   const router = useRouter()
   const [mode, setMode] = useState<Mode>('password')
+  const [role, setRole] = useState<Role>(initialRole)
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
@@ -75,10 +82,10 @@ export function LoginForm() {
       await api.post(
         '/api/auth/login',
         mode === 'password'
-          ? { mode: 'password', identifier: identifier.trim(), password }
-          : { mode: 'code', identifier: identifier.trim(), code: code.trim() },
+          ? { mode: 'password', identifier: identifier.trim(), password, role }
+          : { mode: 'code', identifier: identifier.trim(), code: code.trim(), role },
       )
-      router.push('/')
+      router.push(homePathForRole(role))
       router.refresh()
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : '登录失败，请稍后重试')
@@ -118,6 +125,42 @@ export function LoginForm() {
         >
           验证码登录
         </button>
+      </div>
+
+      {/*
+        身份选择 —— 放在登录方式之后、凭证之前，与用户的心智顺序一致：
+        「我要怎么登录」→「我是谁」→「填账号密码」。
+      */}
+      <div className="space-y-2">
+        <span className="block text-sm font-medium">我是</span>
+        <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="身份">
+          {ROLE_OPTIONS.map((option) => {
+            const active = role === option.value
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                data-testid={`login-role-${option.value}`}
+                onClick={() => setRole(option.value)}
+                className={`rounded-lg border p-3 text-left transition-colors ${
+                  active
+                    ? 'border-primary bg-primary-muted'
+                    : 'hover:border-foreground/30 hover:bg-muted/40'
+                }`}
+              >
+                <span className={`block text-sm ${active ? 'font-medium' : ''}`}>
+                  {option.label}
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">{option.hint}</span>
+              </button>
+            )
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          身份只是「当前以哪个身份使用」，两侧的练习与分享数据都会保留。
+        </p>
       </div>
 
       <div className="space-y-2">

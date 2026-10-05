@@ -28,6 +28,8 @@ export interface AuthenticatedUser {
    * **仅用于展示**：访问控制由服务端 `requireAdmin()` 重新校验。
    */
   isAdmin: boolean
+  /** 当前身份：`candidate` 求职者 / `interviewer` 面试官（DATA_MODEL §2.10） */
+  role: 'candidate' | 'interviewer'
 }
 
 function toAuthenticatedUser(row: User): AuthenticatedUser {
@@ -41,6 +43,7 @@ function toAuthenticatedUser(row: User): AuthenticatedUser {
     membership: row.membership,
     freeCredits: row.freeCredits,
     isAdmin: row.isAdmin,
+    role: row.role,
   }
 }
 

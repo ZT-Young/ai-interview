@@ -51,6 +51,8 @@ export interface TestUser {
   id: string
   email: string
   token: string
+  /** 注册得到的当前身份（面试者 / 面试官） */
+  role: 'candidate' | 'interviewer'
 }
 
 /**
@@ -66,7 +68,7 @@ export async function createTestUser(prefix = 'user'): Promise<TestUser> {
     password: TEST_PASSWORD,
     acceptTerms: true,
   })
-  return { id: result.user.id, email, token: result.token }
+  return { id: result.user.id, email, token: result.token, role: result.user.role }
 }
 
 /**

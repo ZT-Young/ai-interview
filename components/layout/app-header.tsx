@@ -23,6 +23,7 @@ export async function AppHeader() {
     membership: user.membership,
     freeCredits: user.freeCredits,
     isAdmin: user.isAdmin,
+    role: user.role,
   }
 
   return (

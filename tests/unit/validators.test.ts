@@ -174,6 +174,62 @@ describe('资料更新校验', () => {
   it('拒绝非法头像地址', () => {
     expect(updateProfileSchema.safeParse({ avatarUrl: 'not-a-url' }).success).toBe(false)
   })
+
+  /**
+   * 这条是**回归护栏**，不是普通的字段校验。
+   *
+   * `role` 一旦带 `.default('candidate')`，zod 会在字段缺失时把值补上，
+   * 于是「只改昵称」会被解析成 `{ name, role: 'candidate' }`，
+   * 服务层按「传了就改」处理 —— 结果就是**面试官改个昵称就被踢回求职者侧**，
+   * 而且极难自查（用户只会觉得「我明明是面试官，怎么变回去了」）。
+   */
+  it('只改昵称时不会顺带把身份重置为面试者', () => {
+    const parsed = updateProfileSchema.safeParse({ name: '张三' })
+    expect(parsed.success).toBe(true)
+    expect(parsed.data).not.toHaveProperty('role')
+  })
+
+  it('显式切换身份时才带上 role', () => {
+    expect(updateProfileSchema.safeParse({ role: 'interviewer' })).toMatchObject({
+      success: true,
+      data: { role: 'interviewer' },
+    })
+  })
+})
+
+describe('登录身份校验', () => {
+  /** 同上：登录不传 role 必须是「保持现状」，而不是「切成面试者」 */
+  it('不传 role 时不补默认值（否则每次登录都会重置身份）', () => {
+    const parsed = loginSchema.safeParse({
+      mode: 'password',
+      identifier: 'interviewer@example.com',
+      password: 'secret123',
+    })
+    expect(parsed.success).toBe(true)
+    expect(parsed.data).not.toHaveProperty('role')
+  })
+
+  it('传入 role 时原样透传', () => {
+    const parsed = loginSchema.safeParse({
+      mode: 'password',
+      identifier: 'interviewer@example.com',
+      password: 'secret123',
+      role: 'interviewer',
+    })
+    expect(parsed.data).toMatchObject({ role: 'interviewer' })
+  })
+})
+
+describe('注册身份校验', () => {
+  it('不传 role 时默认面试者（注册必须有身份）', () => {
+    const parsed = registerSchema.safeParse({
+      channel: 'email',
+      email: 'someone@example.com',
+      password: 'secret123',
+      acceptTerms: true,
+    })
+    expect(parsed.data).toMatchObject({ role: 'candidate' })
+  })
 })
 
 describe('简历入参校验', () => {

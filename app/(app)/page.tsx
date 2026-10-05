@@ -34,6 +34,9 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function WorkbenchPage() {
   const user = await optionalUser()
   if (!user) redirect('/login')
+  // 面试者工作台只服务于求职者身份；面试官误入时直接送到自己那一侧，
+  // 不让 TA 对着一堆练习入口发呆（身份可随时切回，见 /interviewer 的切换入口）
+  if (user.role === 'interviewer') redirect('/interviewer')
 
   let recent: Awaited<ReturnType<typeof listSessions>>['items'] = []
   let total = 0

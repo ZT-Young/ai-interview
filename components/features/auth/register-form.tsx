@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { Alert, Input, Label } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { api, ApiClientError } from '@/lib/http/api-client'
+import { ROLE_OPTIONS, type Role } from './role-options'
 
 /** 与 lib/validators/auth.ts 的 phoneSchema 保持一致（仅用于前端即时提示） */
 const PHONE_RE = /^1[3-9]\d{9}$/
@@ -35,6 +36,8 @@ export function RegisterForm() {
   /** 手机号通道的可选密码：设置后可用「手机号 + 密码」登录 */
   const [phonePassword, setPhonePassword] = useState('')
 
+  /** 注册身份：面试者 / 面试官；注册成功后带去登录页预选同一身份 */
+  const [role, setRole] = useState<Role>('candidate')
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -78,6 +81,7 @@ export function RegisterForm() {
           channel: 'email',
           email,
           password,
+          role,
           acceptTerms,
         })
       } else {
@@ -87,11 +91,12 @@ export function RegisterForm() {
           code: code.trim(),
           // 未填写则不传：服务端据此判定该账号只能用验证码登录
           ...(phonePassword ? { password: phonePassword } : {}),
+          role,
           acceptTerms,
         })
       }
       // 注册 ≠ 进入产品：交给用户自己登录一次（见文件顶部说明）
-      router.push('/login?registered=1')
+      router.push(`/login?registered=1&role=${role}`)
       router.refresh()
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : '注册失败，请稍后重试')
@@ -135,6 +140,36 @@ export function RegisterForm() {
         >
           手机号注册
         </button>
+      </div>
+
+      {/* 身份选择：与登录页同款顺序（先方式，再身份），避免两处心智不一致 */}
+      <div className="space-y-2">
+        <span className="block text-sm font-medium">我是</span>
+        <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="身份">
+          {ROLE_OPTIONS.map((option) => {
+            const active = role === option.value
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                data-testid={`register-role-${option.value}`}
+                onClick={() => setRole(option.value)}
+                className={`rounded-lg border p-3 text-left transition-colors ${
+                  active
+                    ? 'border-primary bg-primary-muted'
+                    : 'hover:border-foreground/30 hover:bg-muted/40'
+                }`}
+              >
+                <span className={`block text-sm ${active ? 'font-medium' : ''}`}>
+                  {option.label}
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">{option.hint}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {channel === 'email' ? (

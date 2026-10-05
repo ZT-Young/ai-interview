@@ -44,6 +44,11 @@ export interface PublicUser {
    * **仅用于展示**：真正的访问控制在服务端 `requireAdmin()` 重新校验。
    */
   isAdmin: boolean
+  /**
+   * 当前身份：`candidate` 求职者 / `interviewer` 面试官（DATA_MODEL §2.10）。
+   * 决定登录后落到哪一侧的工作台，以及导航展示哪一套入口。
+   */
+  role: 'candidate' | 'interviewer'
   createdAt: string
 }
 
@@ -60,6 +65,7 @@ export function toPublicUser(row: User): PublicUser {
     emailVerified: row.emailVerifiedAt !== null,
     phoneVerified: row.phoneVerifiedAt !== null,
     isAdmin: row.isAdmin,
+    role: row.role,
     createdAt: row.createdAt.toISOString(),
   }
 }
@@ -268,6 +274,8 @@ async function registerByEmail(
         passwordHash,
         username,
         name: input.name ?? null,
+        // 注册时选定的身份（面试者 / 面试官），决定注册后落到哪一侧
+        role: input.role,
         termsAcceptedAt: new Date(),
       })
       .returning()
@@ -321,6 +329,7 @@ async function registerByPhone(
         passwordHash,
         username,
         name: input.name ?? null,
+        role: input.role,
         termsAcceptedAt: new Date(),
       })
       .returning()
@@ -412,16 +421,34 @@ export async function login(input: LoginInput, meta: RequestMeta = {}): Promise<
     userAgent: meta.userAgent ?? null,
   })
 
+  /**
+   * 登录时选定的身份与账号当前身份不一致 → 顺带切换。
+   *
+   * 为什么不放一个独立的「切换身份」接口让前端登录后再调：
+   * 那样会多出一次往返，且登录成功到切换完成之间存在「进错工作台」的中间态。
+   * 身份是单值列（V1 取舍见 INTERVIEWER_SIDE §3），切换只改这一列，**两侧数据都保留**。
+   */
+  let current = user
+  if (input.role && user.role !== input.role) {
+    const updated = await db
+      .update(users)
+      .set({ role: input.role, updatedAt: new Date() })
+      .where(eq(users.id, user.id))
+      .returning()
+    current = updated[0] ?? user
+  }
+
   await db.insert(auditLogs).values({
-    actorId: user.id,
+    actorId: current.id,
     action: 'auth.login',
     targetType: 'user',
-    targetId: user.id,
+    targetId: current.id,
     ip,
     userAgent: meta.userAgent ?? null,
+    metadata: JSON.stringify({ role: current.role, switched: user.role !== current.role }),
   })
 
-  return { user: toPublicUser(user), token, expiresAt }
+  return { user: toPublicUser(current), token, expiresAt }
 }
 
 /**
@@ -489,6 +516,7 @@ export async function updateProfile(
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
       ...(input.username !== undefined ? { username: input.username } : {}),
+      ...(input.role !== undefined ? { role: input.role } : {}),
       updatedAt: new Date(),
     })
     .where(and(eq(users.id, id), isNull(users.deletedAt)))

@@ -453,5 +453,80 @@ describe.skipIf(!hasTestDatabase())(
         expect(result.user.id).toBe(created.id)
       })
     })
+
+    describe('身份：面试者与面试官', () => {
+      it('注册不传 role 时默认为面试者', async () => {
+        const created = await createTestUser('role-default')
+        createdUserIds.push(created.id)
+        expect(created.role).toBe('candidate')
+      })
+
+      it('注册时选面试官 → 账号身份为面试官', async () => {
+        const email = uniqueEmail('role-iv')
+        const result = await register({
+          channel: 'email',
+          email,
+          password: TEST_PASSWORD,
+          role: 'interviewer',
+          acceptTerms: true,
+        })
+        createdUserIds.push(result.user.id)
+        expect(result.user.role).toBe('interviewer')
+      })
+
+      it('登录时选的身份与账号当前身份不一致 → 顺带切换，且数据不丢', async () => {
+        const created = await createTestUser('role-switch')
+        createdUserIds.push(created.id)
+        expect(created.role).toBe('candidate')
+
+        const asInterviewer = await login({
+          mode: 'password',
+          identifier: created.email,
+          password: TEST_PASSWORD,
+          role: 'interviewer',
+        })
+        expect(asInterviewer.user.role).toBe('interviewer')
+
+        // 切回去仍可正常登录，且是同一个账号（身份只是单值列，不是两个账号）
+        const asCandidate = await login({
+          mode: 'password',
+          identifier: created.email,
+          password: TEST_PASSWORD,
+          role: 'candidate',
+        })
+        expect(asCandidate.user.id).toBe(created.id)
+        expect(asCandidate.user.role).toBe('candidate')
+      })
+
+      it('登录不传 role 时不改变已有身份（向后兼容老客户端）', async () => {
+        const email = uniqueEmail('role-keep')
+        const registered = await register({
+          channel: 'email',
+          email,
+          password: TEST_PASSWORD,
+          role: 'interviewer',
+          acceptTerms: true,
+        })
+        createdUserIds.push(registered.user.id)
+
+        const result = await login({
+          mode: 'password',
+          identifier: email,
+          password: TEST_PASSWORD,
+        })
+        expect(result.user.role).toBe('interviewer')
+      })
+
+      it('更新资料可切换身份', async () => {
+        const created = await createTestUser('role-update')
+        createdUserIds.push(created.id)
+
+        const updated = await updateProfile(created.id, { role: 'interviewer' })
+        expect(updated.role).toBe('interviewer')
+
+        const back = await updateProfile(created.id, { role: 'candidate' })
+        expect(back.role).toBe('candidate')
+      })
+    })
   },
 )

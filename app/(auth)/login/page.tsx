@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { LoginForm } from '@/components/features/auth/login-form'
+import type { Role } from '@/components/features/auth/role-options'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { optionalUser } from '@/lib/api/guard'
 
@@ -12,13 +13,17 @@ export const dynamic = 'force-dynamic'
 export default async function LoginPage({
   searchParams,
 }: {
-  /** 注册成功后带着 `?registered=1` 回到这里，用于给出确认提示 */
-  searchParams?: { registered?: string }
+  /**
+   * 注册成功后带着 `?registered=1` 回到这里，用于给出确认提示；
+   * `role` 由注册页带过来，让登录表单预选同一身份（刚注册成面试官就别再让他选一次）。
+   */
+  searchParams?: { registered?: string; role?: string }
 }) {
   // 已登录用户直接回工作台，避免重复登录
   if (await optionalUser()) redirect('/')
 
   const justRegistered = searchParams?.registered === '1'
+  const initialRole: Role = searchParams?.role === 'interviewer' ? 'interviewer' : 'candidate'
 
   return (
     <Card>
@@ -35,11 +40,11 @@ export default async function LoginPage({
             data-testid="register-success-hint"
             className="rounded-md border border-success/40 bg-success/10 px-3 py-2 text-sm text-success"
           >
-            注册成功，请用刚才的邮箱与密码登录。
+            注册成功，请登录。
           </div>
         ) : null}
 
-        <LoginForm />
+        <LoginForm initialRole={initialRole} />
         <p className="text-center text-sm text-muted-foreground">
           还没有账号？
           <Link href="/register" className="ml-1 underline underline-offset-4">

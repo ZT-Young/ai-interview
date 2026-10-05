@@ -9,6 +9,7 @@ import {
   Settings,
   Sparkles,
   Target,
+  Users,
   X,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -19,11 +20,24 @@ import { Button } from '@/components/ui/button'
 import { api } from '@/lib/http/api-client'
 import { cn } from '@/lib/utils/index'
 
+/** 求职者侧入口 */
 const NAV_ITEMS = [
   { href: '/resumes', label: '简历', icon: FileText },
   { href: '/jd', label: '岗位 JD', icon: Target },
   { href: '/sessions', label: '历史记录', icon: History },
   { href: '/membership', label: '会员', icon: Sparkles, paidOnly: true },
+  { href: '/settings', label: '设置', icon: Settings },
+] as const
+
+/**
+ * 面试官侧入口（B 端）。
+ *
+ * **不复用求职者那套**：简历 / JD / 历史记录都是求职者的练习资产，
+ * 面试官看到会以为自己能用（点了才发现是空的），属于典型的「入口误导」。
+ * 保留「设置」是因为改用户名、导出与删除账号是身份无关的。
+ */
+const INTERVIEWER_NAV_ITEMS = [
+  { href: '/interviewer', label: '工作台', icon: Users },
   { href: '/settings', label: '设置', icon: Settings },
 ] as const
 
@@ -37,6 +51,12 @@ function visibleNavItems(freeMode: boolean) {
   return freeMode ? NAV_ITEMS.filter((item) => !('paidOnly' in item) || !item.paidOnly) : NAV_ITEMS
 }
 
+/** 按身份挑选导航项，再按免费模式过滤付费入口 */
+function navItemsFor(user: AppNavUser, freeMode: boolean) {
+  const base = user.role === 'interviewer' ? INTERVIEWER_NAV_ITEMS : NAV_ITEMS
+  return freeMode ? base.filter((item) => !('paidOnly' in item) || !item.paidOnly) : base
+}
+
 export interface AppNavUser {
   /** 纯手机号注册的用户没有邮箱 */
   email: string | null
@@ -46,6 +66,11 @@ export interface AppNavUser {
   membership: string
   freeCredits: number
   isAdmin: boolean
+  /**
+   * 当前身份：`candidate` 求职者 / `interviewer` 面试官（DATA_MODEL §2.10）。
+   * 决定导航里出现哪一套入口：求职者看「简历 / JD / 面试」，面试官看「面试官工作台」。
+   */
+  role: 'candidate' | 'interviewer'
 }
 
 /**
@@ -63,7 +88,7 @@ export function AppNav({ user, freeMode = false }: { user: AppNavUser; freeMode?
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
-  const items = visibleNavItems(freeMode)
+  const items = navItemsFor(user, freeMode)
 
   // 路由变化后自动收起抽屉，避免跳转后菜单仍悬在页面上
   useEffect(() => {
