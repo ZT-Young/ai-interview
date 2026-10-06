@@ -67,6 +67,40 @@ jobs:
           echo "::notice title=集成测试::未配置 DATABASE_URL，tests/integration/* 已显式跳过。"
           echo "如需在 CI 覆盖集成测试，请配置 secrets.DATABASE_URL 与 secrets.AUTH_SECRET。"
 
+  # AI 评分器评测：仅在配置了 LLM 密钥时运行，作为 AI 改动的强制门禁
+  # （§9.4「AI 改动验证协议」：未配置密钥则自动跳过，不因此失败）
+  ai-eval:
+    name: AI 评分器评测（需 LLM_API_KEY）
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: verify
+    if: ${{ secrets.LLM_API_KEY != '' }}
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 评分器评测（pnpm eval:scoring）
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+        run: pnpm eval:scoring
+
   # 可选：配置了数据库凭证时才跑集成测试
   integration:
     name: 集成测试（需 DATABASE_URL）

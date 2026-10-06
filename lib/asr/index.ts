@@ -79,8 +79,11 @@ export const MAX_AUDIO_BYTES = 10 * 1024 * 1024
 /**
  * 工厂：当前一律返回未配置实现。
  *
- * TODO(ASR 选型确定后)：在此返回具体供应商实现，
- * 例如 `new OpenAiCompatibleAsr()`（/audio/transcriptions）或国内 ASR 适配器。
+ * 阻塞项（对应 AGENTS.md §9.2 待澄清，供应商选型未定，**不阻塞开发**）：
+ * 选型确定后在此接线具体实现，例如
+ * `new OpenAiCompatibleAsr()`（/audio/transcriptions）或国内 ASR 适配器。
+ * 在此之前，音频路由会返回 503（serviceUnavailable）并提示用户手动输入，
+ * **绝不伪造转写文字**（见 app/api/sessions/[id]/answers/audio/route.ts）。
  */
 export function createAsrPort(): AsrPort {
   return new UnconfiguredAsr()
