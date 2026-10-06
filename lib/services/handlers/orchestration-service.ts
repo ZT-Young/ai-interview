@@ -1,286 +1,56 @@
-import { and, asc, eq, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 
 import { getDb } from '@/db/client'
 import {
   answers,
   interviewMessages,
-  interviewSessions,
-  jobJds,
   questions,
-  resumes,
   type InterviewMessage,
   type Question,
 } from '@/db/schema'
 import { internalError, notFound, validationError } from '@/lib/api/errors'
-import { ownedByActive } from '@/lib/api/ownership'
-import { runInterviewAgent, type AgentContext } from '@/lib/ai/agent/loop'
-import type { ToolResult } from '@/lib/ai/agent/tools'
-/** 追问决策已改为 Agent 链路（buildFollowUpPrompt 仍被评测脚本用作对照基线） */
+import { assertPhaseTransition, type OrchestrationPhase } from '../state/orchestration'
 import { buildHintPrompt, PROMPT_VERSION } from '@/lib/ai/prompts/interview'
-import { hintParseSchema, normalizeFollowUp } from '@/lib/ai/schemas/interview'
-import { MAX_QUESTION_DEPTH } from '@/db/schema/enums'
+import { hintParseSchema } from '@/lib/ai/schemas/interview'
 import { trackEvent } from '@/lib/observability/analytics'
-import { parseError } from '@/lib/parsing/errors'
-import type { LlmPort } from '@/lib/parsing/llm-port'
 import { parseWithRetry } from '@/lib/parsing/run'
-
 import {
-  assertPhaseTransition,
-  type OrchestrationPhase,
-} from '../state/orchestration'
+  listMainQuestions,
+  logMessage,
+  nextStep,
+  persistPhase,
+  progressOf,
+  requireSession,
+  trackInterviewCompleted,
+} from './interview/state'
+import { decideFollowUp } from './interview/followup'
+import {
+  messageView,
+  questionView,
+  toExpectedPoints,
+  type OrchestrationPorts,
+  type StepView,
+  type SubmitAction,
+  type SubmitResult,
+} from './interview/shared'
 
 /**
  * 面试编排服务 —— ③ 领域服务层。
  *
- * 服务端状态机控制全部流程（docs/engineering/ARCHITECTURE.md §3.6）：
+ * 本文件是**编排入口**：协调状态机（interview/state.ts）、追问决策
+ * （interview/followup.ts）与提示生成，自身只做参数校验、事务边界与
+ * 对外契约。服务端状态机控制全部流程（docs/engineering/ARCHITECTURE.md §3.6）：
  * - **一次只问一个问题**：任何响应最多返回一条 question / follow_up
- * - **每主问题最多 2 层追问**：由本服务按 root_id 统计 depth 强制，忽略模型越界请求
+ * - **每主问题最多 2 层追问**：由 followup 层按 root_id 统计 depth 强制
  * - **太短用确定性阈值**：去空白后 < 30 字符直接判 too_short，不调用模型
  * - **跑题/模糊由模型判定**，并要求给出 focus（依据的回答片段）
- */
-
-/** 回答少于该长度视为「太短」，直接追问细节（不调用模型） */
-export const MIN_ANSWER_LENGTH = 30
-
-export interface OrchestrationPorts {
-  llm: LlmPort
-}
-
-export interface StepView {
-  phase: OrchestrationPhase
-  /** 本轮要展示的消息（最多 1 条提问/追问） */
-  message: { id: string; role: string; type: string; content: string } | null
-  question: {
-    id: string
-    orderIndex: number
-    depth: number
-    type: string
-    source: string
-    dimension: string
-    content: string
-    expectedPoints: string[]
-    followUpAllowed: boolean
-  } | null
-  /** 进度：已回答的主问题数 / 主问题总数 */
-  progress: { answered: number; total: number }
-  finished: boolean
-  followUpReason?: string
-  focus?: string
-}
-
-function toExpectedPoints(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  return value.filter((item): item is string => typeof item === 'string')
-}
-
-function questionView(row: Question) {
-  return {
-    id: row.id,
-    orderIndex: row.orderIndex,
-    depth: row.depth,
-    type: row.type,
-    source: row.source,
-    dimension: row.dimension,
-    content: row.content,
-    expectedPoints: toExpectedPoints(row.expectedPoints),
-    followUpAllowed: row.followUpAllowed,
-  }
-}
-
-function messageView(row: InterviewMessage) {
-  return { id: row.id, role: row.role, type: row.type, content: row.content }
-}
-
-/* ------------------------------------------------------------------ *
- * 读取辅助
- * ------------------------------------------------------------------ */
-
-async function requireSession(userId: string, sessionId: string) {
-  const db = getDb()
-  const rows = await db
-    .select()
-    .from(interviewSessions)
-    .where(ownedByActive(interviewSessions, sessionId, userId))
-    .limit(1)
-
-  const session = rows[0]
-  if (!session) throw notFound('面试会话不存在')
-  return session
-}
-
-/** 主问题（depth = 0），按顺序 */
-async function listMainQuestions(sessionId: string): Promise<Question[]> {
-  const db = getDb()
-  return db
-    .select()
-    .from(questions)
-    .where(and(eq(questions.sessionId, sessionId), eq(questions.depth, 0)))
-    .orderBy(asc(questions.orderIndex))
-}
-
-/** 某主问题下已有的最大追问层级 */
-async function maxFollowUpDepth(sessionId: string, rootId: string): Promise<number> {
-  const db = getDb()
-  const rows = await db
-    .select({ value: sql<number>`coalesce(max(${questions.depth}), 0)` })
-    .from(questions)
-    .where(and(eq(questions.sessionId, sessionId), eq(questions.rootId, rootId)))
-
-  return Number(rows[0]?.value ?? 0)
-}
-
-async function persistPhase(
-  sessionId: string,
-  userId: string,
-  phase: OrchestrationPhase,
-  extra: { currentQuestionId?: string | null; status?: 'in_progress' | 'completed'; finishedAt?: Date } = {},
-): Promise<void> {
-  const db = getDb()
-  const now = new Date()
-
-  await db
-    .update(interviewSessions)
-    .set({
-      phase,
-      phaseUpdatedAt: now,
-      updatedAt: now,
-      ...(extra.currentQuestionId !== undefined
-        ? { currentQuestionId: extra.currentQuestionId }
-        : {}),
-      ...(extra.status ? { status: extra.status } : {}),
-      ...(extra.finishedAt ? { finishedAt: extra.finishedAt } : {}),
-      ...(extra.status === 'in_progress' ? { startedAt: now } : {}),
-    })
-    .where(ownedByActive(interviewSessions, sessionId, userId))
-}
-
-async function logMessage(input: {
-  sessionId: string
-  questionId?: string | null
-  role: 'ai' | 'user' | 'system'
-  type: 'question' | 'follow_up' | 'hint' | 'answer' | 'skip' | 'system'
-  content: string
-  followUpReason?: string | null
-  focus?: string | null
-  metadata?: Record<string, unknown>
-}): Promise<InterviewMessage> {
-  const db = getDb()
-  const rows = await db
-    .insert(interviewMessages)
-    .values({
-      sessionId: input.sessionId,
-      questionId: input.questionId ?? null,
-      role: input.role,
-      type: input.type,
-      content: input.content,
-      followUpReason: input.followUpReason ?? null,
-      focus: input.focus ?? null,
-      metadata: input.metadata ?? {},
-    })
-    .returning()
-
-  const row = rows[0]
-  if (!row) throw internalError('消息写入失败')
-  return row
-}
-
-/**
- * 组装 Agent 可用的检索上下文。
  *
- * 与旧 `buildContext()`（拼一份固定摘要）的区别：**这里给的是原材料**，
- * 由 Agent 自己决定检索什么（简历 / JD / 历史问答 / 已问题目），
- * 服务端只负责把数据取出来并保证不越界（只取本会话、按 rootId 限定范围）。
+ * 子模块划分见 interview/{shared,state,followup}.ts。
  */
-async function buildAgentContext(input: {
-  session: typeof interviewSessions.$inferSelect
-  rootId: string
-  question: Question
-  answer: string
-}): Promise<AgentContext> {
-  const db = getDb()
-  const { session, rootId, question, answer } = input
 
-  let resume: unknown = null
-  if (session.resumeId) {
-    const rows = await db.select().from(resumes).where(eq(resumes.id, session.resumeId)).limit(1)
-    resume = rows[0]?.parsedData ?? null
-  }
-
-  let jd: unknown = null
-  if (session.jobJdId) {
-    const rows = await db.select().from(jobJds).where(eq(jobJds.id, session.jobJdId)).limit(1)
-    jd = rows[0]?.parsedData ?? null
-  }
-
-  // 当前主问题链上的问答（含本次），供 recent_answers 检索
-  const chainRows = await db
-    .select({ question: questions, answer: answers })
-    .from(questions)
-    .leftJoin(answers, eq(answers.questionId, questions.id))
-    .where(and(eq(questions.sessionId, session.id), eq(questions.rootId, rootId)))
-    .orderBy(asc(questions.depth))
-
-  const history = chainRows.map((row) => ({
-    question: row.question.content,
-    answer: row.answer?.content ?? '',
-    depth: row.question.depth,
-  }))
-
-  // 本次回答尚未落库时补上（链里只有已落库的行）
-  if (history.length === 0 || history[history.length - 1].question !== question.content) {
-    history.push({ question: question.content, answer, depth: question.depth })
-  }
-
-  const askedRows = await db
-    .select({ content: questions.content })
-    .from(questions)
-    .where(eq(questions.sessionId, session.id))
-    .orderBy(asc(questions.orderIndex))
-
-  const mainQuestion =
-    question.depth === 0 ? question.content : (chainRows.find((row) => row.question.depth === 0)?.question.content ?? question.content)
-
-  return {
-    resume,
-    jd,
-    mainQuestion,
-    currentAnswer: answer,
-    history,
-    askedQuestions: askedRows.map((row) => row.content),
-  }
-}
-
-/** 组装追问所需的上下文（JD 要求 + 简历要点） */
-async function buildContext(session: typeof interviewSessions.$inferSelect): Promise<string> {
-  const db = getDb()
-  const parts: string[] = []
-
-  if (session.jobJdId) {
-    const rows = await db.select().from(jobJds).where(eq(jobJds.id, session.jobJdId)).limit(1)
-    const parsed = rows[0]?.parsedData as { must_have?: string[]; responsibilities?: string[] } | null
-    if (parsed) {
-      if (parsed.must_have?.length) parts.push(`岗位硬性要求：${parsed.must_have.join('；')}`)
-      if (parsed.responsibilities?.length) parts.push(`岗位职责：${parsed.responsibilities.join('；')}`)
-    }
-  }
-
-  if (session.resumeId) {
-    const rows = await db.select().from(resumes).where(eq(resumes.id, session.resumeId)).limit(1)
-    const parsed = rows[0]?.parsedData as {
-      skills?: string[]
-      projects?: Array<{ name?: string }>
-    } | null
-    if (parsed) {
-      if (parsed.skills?.length) parts.push(`候选人技能：${parsed.skills.join('、')}`)
-      const projects = (parsed.projects ?? [])
-        .map((item) => item.name)
-        .filter((name): name is string => Boolean(name))
-      if (projects.length) parts.push(`候选人项目：${projects.join('、')}`)
-    }
-  }
-
-  return parts.length > 0 ? parts.join('\n') : '（无可用的岗位与简历要点）'
-}
+export { MIN_ANSWER_LENGTH } from './interview/shared'
+export type { StepView, SubmitResult, SubmitAction, OrchestrationPorts }
+export { MAX_QUESTION_DEPTH } from '@/db/schema/enums'
 
 /* ------------------------------------------------------------------ *
  * 1. 开始面试：IDLE/READY → ASKING
@@ -334,116 +104,9 @@ export async function getNextQuestion(userId: string, sessionId: string): Promis
   return nextStep(userId, sessionId)
 }
 
-/**
- * 推进到下一道**未处理**的主问题。
- *
- * 「已处理」= 已有回答（answers）**或**已跳过（interview_messages 中有 skip 记录）。
- * 跳过必须计入，否则被跳过的题会被反复重问。
- *
- * 全部处理完则进入 FINISHED。
- */
-async function nextStep(userId: string, sessionId: string): Promise<StepView> {
-  const session = await requireSession(userId, sessionId)
-  const mains = await listMainQuestions(sessionId)
-
-  const db = getDb()
-  const answeredRows = await db
-    .select({ questionId: answers.questionId })
-    .from(answers)
-    .innerJoin(questions, eq(questions.id, answers.questionId))
-    .where(and(eq(answers.userId, userId), eq(questions.sessionId, sessionId)))
-
-  const skippedRows = await db
-    .select({ questionId: interviewMessages.questionId })
-    .from(interviewMessages)
-    .where(
-      and(
-        eq(interviewMessages.sessionId, sessionId),
-        eq(interviewMessages.type, 'skip'),
-        eq(interviewMessages.role, 'user'),
-      ),
-    )
-
-  const handledIds = new Set<string>()
-  for (const row of answeredRows) handledIds.add(row.questionId)
-  for (const row of skippedRows) if (row.questionId) handledIds.add(row.questionId)
-
-  const nextMain = mains.find((item) => !handledIds.has(item.id))
-
-  // 进度只统计主问题的回答数（跳过不计入已答，但计入已处理）
-  const answeredMainCount = mains.filter((item) =>
-    answeredRows.some((row) => row.questionId === item.id),
-  ).length
-  const progress = { answered: answeredMainCount, total: mains.length }
-
-  if (!nextMain) {
-    const phase = session.phase as OrchestrationPhase
-    if (phase !== 'FINISHED') {
-      assertPhaseTransition(phase, 'FINISHED')
-      await persistPhase(sessionId, userId, 'FINISHED', {
-        status: 'completed',
-        currentQuestionId: null,
-        finishedAt: new Date(),
-      })
-      await logMessage({
-        sessionId,
-        role: 'system',
-        type: 'system',
-        content: '所有问题已处理，面试结束。',
-      })
-      // 自然结束：题目处理完（或跳过完）而结束，非用户主动点击
-      void trackInterviewCompleted(userId, sessionId, 'natural', {
-        total: mains.length,
-        answered: progress.answered,
-      })
-    }
-
-    return {
-      phase: 'FINISHED',
-      message: null,
-      question: null,
-      progress,
-      finished: true,
-    }
-  }
-
-  // 迁移到 ASKING（不同来源阶段走不同的合法路径）
-  const phase = session.phase as OrchestrationPhase
-  if (phase === 'READY') assertPhaseTransition('READY', 'ASKING')
-  else if (phase === 'FOLLOW_UP') assertPhaseTransition('FOLLOW_UP', 'ASKING')
-  else if (phase === 'NEXT_QUESTION') assertPhaseTransition('NEXT_QUESTION', 'ASKING')
-
-  const message = await logMessage({
-    sessionId,
-    questionId: nextMain.id,
-    role: 'ai',
-    type: 'question',
-    content: nextMain.content,
-  })
-
-  await persistPhase(sessionId, userId, 'WAITING_ANSWER', { currentQuestionId: nextMain.id })
-
-  return {
-    phase: 'WAITING_ANSWER',
-    message: messageView(message),
-    question: questionView(nextMain),
-    progress,
-    finished: false,
-  }
-}
-
 /* ------------------------------------------------------------------ *
  * 3. 提交回答 / 跳过 / 请求提示
  * ------------------------------------------------------------------ */
-
-export type SubmitAction = 'answer' | 'skip' | 'hint'
-
-export interface SubmitResult extends StepView {
-  /** 上一次提交产生的消息（回答/跳过/提示） */
-  recorded: { id: string; type: string; content: string } | null
-  /** 追问决策（仅 answer 动作且有追问时） */
-  followUp?: { reason: string; focus: string; depth: number }
-}
 
 export async function submitAnswer(
   userId: string,
@@ -552,7 +215,7 @@ export async function submitAnswer(
   await persistPhase(sessionId, userId, 'WAITING_ANSWER', { currentQuestionId: questionId })
 
   // ② 决定是否追问（服务端强制层数上限）
-  const decision = await decideFollowUp({
+  return decideFollowUp({
     userId,
     sessionId,
     session,
@@ -560,203 +223,6 @@ export async function submitAnswer(
     answer: content,
     ports,
   })
-
-  return decision
-}
-
-/* ------------------------------------------------------------------ *
- * 追问决策
- * ------------------------------------------------------------------ */
-
-/**
- * 层数判定：
- * - 当前题目是主问题（depth 0）→ rootId 取自身
- * - 当前题目是追问 → rootId 取 root_id
- * - 主问题已有最大 depth 即当前追问层数
- */
-async function decideFollowUp(input: {
-  userId: string
-  sessionId: string
-  session: typeof interviewSessions.$inferSelect
-  question: Question
-  answer: string
-  ports: OrchestrationPorts
-}): Promise<SubmitResult> {
-  const { userId, sessionId, question, answer, ports } = input
-  const rootId = question.rootId ?? question.id
-  const currentDepth = await maxFollowUpDepth(sessionId, rootId)
-
-  /** 是否还能再追问一层：题目允许 + 未达层数上限 */
-  const canFollowUp = question.followUpAllowed && currentDepth < MAX_QUESTION_DEPTH
-
-  // 不能追问 → 直接推进到下一题
-  if (!canFollowUp) {
-    await persistPhase(sessionId, userId, 'NEXT_QUESTION', { currentQuestionId: null })
-    const step = await nextStep(userId, sessionId)
-    return {
-      ...step,
-      recorded: { id: question.id, type: 'answer', content: answer },
-      followUp: undefined,
-    }
-  }
-
-  await persistPhase(sessionId, userId, 'FOLLOW_UP', { currentQuestionId: question.id })
-
-  /**
-   * 确定性规则：回答过短 → 就地生成 too_short 追问，**不调用模型**。
-   *
-   * 必须在调用模型**之前**短路。早期实现只用 `forcedReason` 在 prompt 里
-   * 「请求」模型返回 `too_short`，真正的兜底却放在模型失败分支里 ——
-   * 于是模型可用时它回 `vague` 就是 `vague`，模型还被白调用一次。
-   * 回答过短是本地可判定的事实，不该由模型决定。
-   */
-  if (answer.length < MIN_ANSWER_LENGTH) {
-    return emitFollowUp({
-      userId,
-      sessionId,
-      parentQuestion: question,
-      rootId,
-      content: '请就你刚提到的内容再多说一些细节：具体做了什么、结果如何？',
-      reason: 'too_short',
-      focus: answer.slice(0, 300),
-      depth: currentDepth + 1,
-    })
-  }
-
-  /**
-   * Agent 决策：模型可先检索（简历 / JD / 历史问答 / 已问题目）再决定追问与否。
-   *
-   * 护栏全部保留且与 Agent 解耦，模型**无法绕过**：
-   * - 层数上限 `MAX_QUESTION_DEPTH`（上面 canFollowUp 已判定）
-   * - 最终决策仍过 `normalizeFollowUp()`：空内容降级、敏感词/禁止项降级
-   * - Agent 失败或超出轮数 → 退回下一题，不阻塞用户
-   */
-  const agentContext = await buildAgentContext({
-    session: input.session,
-    rootId,
-    question,
-    answer,
-  })
-
-  const agent = await runInterviewAgent({
-    llm: ports.llm,
-    context: agentContext,
-    depth: currentDepth,
-  })
-
-  // Agent 不可用 / 未在轮数内收敛 → 退回下一题，不阻塞用户
-  if (!agent.ok) {
-    await persistPhase(sessionId, userId, 'NEXT_QUESTION', { currentQuestionId: null })
-    const step = await nextStep(userId, sessionId)
-    return { ...step, recorded: null }
-  }
-
-  const normalized = normalizeFollowUp({
-    action: agent.decision.action,
-    follow_up: agent.decision.followUp,
-    reason: agent.decision.reason,
-    focus: agent.decision.focus,
-  })
-
-  if (normalized.action !== 'follow_up' || normalized.followUp.length === 0) {
-    await persistPhase(sessionId, userId, 'NEXT_QUESTION', { currentQuestionId: null })
-    const step = await nextStep(userId, sessionId)
-    return { ...step, recorded: null }
-  }
-
-  return emitFollowUp({
-    userId,
-    sessionId,
-    parentQuestion: question,
-    rootId,
-    content: normalized.followUp,
-    reason: normalized.reason,
-    focus: normalized.focus,
-    depth: currentDepth + 1,
-    toolTrace: agent.toolTrace,
-  })
-}
-
-/** 创建追问（作为新的 questions 行）并返回 ASKING 状态的一步 */
-async function emitFollowUp(input: {
-  userId: string
-  sessionId: string
-  parentQuestion: Question
-  rootId: string
-  content: string
-  reason: string
-  focus: string
-  depth: number
-  /** Agent 的工具调用轨迹（可审计：这次追问依据了哪些检索） */
-  toolTrace?: ToolResult[]
-}): Promise<SubmitResult> {
-  const db = getDb()
-
-  const maxOrder = await db
-    .select({ value: sql<number>`coalesce(max(${questions.orderIndex}), 0)` })
-    .from(questions)
-    .where(eq(questions.sessionId, input.sessionId))
-
-  const created = await db
-    .insert(questions)
-    .values({
-      sessionId: input.sessionId,
-      parentId: input.parentQuestion.id,
-      rootId: input.rootId,
-      depth: input.depth,
-      orderIndex: Number(maxOrder[0]?.value ?? 0) + 1,
-      type: input.parentQuestion.type,
-      source: input.parentQuestion.source,
-      content: input.content,
-      dimension: input.parentQuestion.dimension,
-      expectedPoints: [],
-      followUpAllowed: true,
-    })
-    .returning()
-
-  const followUp = created[0]
-  if (!followUp) throw internalError('追问创建失败')
-
-  await logMessage({
-    sessionId: input.sessionId,
-    questionId: followUp.id,
-    role: 'ai',
-    type: 'follow_up',
-    content: input.content,
-    followUpReason: input.reason,
-    focus: input.focus,
-    metadata: {
-      depth: input.depth,
-      ...(input.toolTrace && input.toolTrace.length > 0
-        ? {
-            toolTrace: input.toolTrace.map((item) => ({
-              name: item.name,
-              argument: item.argument,
-              ok: item.ok,
-            })),
-          }
-        : {}),
-    },
-  })
-
-  await persistPhase(input.sessionId, input.userId, 'WAITING_ANSWER', {
-    currentQuestionId: followUp.id,
-  })
-
-  return {
-    phase: 'WAITING_ANSWER',
-    message: {
-      id: followUp.id,
-      role: 'ai',
-      type: 'follow_up',
-      content: followUp.content,
-    },
-    question: questionView(followUp),
-    progress: await progressOf(input.userId, input.sessionId),
-    finished: false,
-    recorded: null,
-    followUp: { reason: input.reason, focus: input.focus, depth: input.depth },
-  }
 }
 
 /* ------------------------------------------------------------------ *
@@ -804,80 +270,15 @@ export async function finishInterview(
  * 辅助
  * ------------------------------------------------------------------ */
 
-/**
- * 埋点：面试完成（完面率的分子，docs/product/METRICS.md §3.1）。
- *
- * 跳过数与追问数**在这里自查**而不是由调用方传入：
- * 两处调用点（自然结束 / 用户主动结束）拿到的上下文不同，
- * 让调用方各自拼属性迟早会漏字段或口径不一致。
- *
- * 只记计数与时长，不记任何作答内容 —— 埋点的 PII 最小化硬要求。
- */
-async function trackInterviewCompleted(
-  userId: string,
-  sessionId: string,
-  endedBy: 'natural' | 'user',
-  counts: { total: number; answered: number },
-): Promise<void> {
-  try {
-    const db = getDb()
-
-    const [skipRow] = await db
-      .select({ value: sql<number>`count(*)::int` })
-      .from(interviewMessages)
-      .where(and(eq(interviewMessages.sessionId, sessionId), eq(interviewMessages.type, 'skip')))
-
-    const [followUpRow] = await db
-      .select({ value: sql<number>`count(*)::int` })
-      .from(questions)
-      .where(and(eq(questions.sessionId, sessionId), sql`${questions.depth} > 0`))
-
-    const [session] = await db
-      .select({ startedAt: interviewSessions.startedAt, finishedAt: interviewSessions.finishedAt })
-      .from(interviewSessions)
-      .where(eq(interviewSessions.id, sessionId))
-      .limit(1)
-
-    const startedAt = session?.startedAt ?? null
-    const finishedAt = session?.finishedAt ?? null
-    const durationSec =
-      startedAt && finishedAt
-        ? Math.max(0, Math.round((finishedAt.getTime() - startedAt.getTime()) / 1000))
-        : null
-
-    await trackEvent('interview_completed', {
-      userId,
-      sessionId,
-      properties: {
-        total_main_questions: counts.total,
-        answered: counts.answered,
-        skipped: skipRow?.value ?? 0,
-        follow_up_count: followUpRow?.value ?? 0,
-        duration_sec: durationSec,
-        ended_by: endedBy,
-      },
-    })
-  } catch (error) {
-    // 埋点失败绝不影响面试流程
-    console.error('[analytics] 记录 interview_completed 失败', error)
-  }
-}
-
-async function progressOf(userId: string, sessionId: string) {
+/** 读取整场对话消息（供调试与测试） */
+export async function listMessages(userId: string, sessionId: string): Promise<InterviewMessage[]> {
+  await requireSession(userId, sessionId)
   const db = getDb()
-  const mains = await listMainQuestions(sessionId)
-
-  const rows = await db
-    .select({ questionId: answers.questionId })
-    .from(answers)
-    .innerJoin(questions, eq(questions.id, answers.questionId))
-    .where(and(eq(answers.userId, userId), eq(questions.sessionId, sessionId)))
-
-  const answeredMainCount = mains.filter((item) =>
-    rows.some((row) => row.questionId === item.id),
-  ).length
-
-  return { answered: answeredMainCount, total: mains.length }
+  return db
+    .select()
+    .from(interviewMessages)
+    .where(eq(interviewMessages.sessionId, sessionId))
+    .orderBy(asc(interviewMessages.createdAt))
 }
 
 /** 生成提示（不给答案，只给思路） */
@@ -907,16 +308,3 @@ async function generateHint(question: Question, ports: OrchestrationPorts): Prom
 
   return outcome.data.data.hint || '建议按「背景 → 你负责的部分 → 具体做法 → 量化结果」组织回答。'
 }
-
-/** 读取整场对话消息（供调试与测试） */
-export async function listMessages(userId: string, sessionId: string): Promise<InterviewMessage[]> {
-  await requireSession(userId, sessionId)
-  const db = getDb()
-  return db
-    .select()
-    .from(interviewMessages)
-    .where(eq(interviewMessages.sessionId, sessionId))
-    .orderBy(asc(interviewMessages.createdAt))
-}
-
-export { MAX_QUESTION_DEPTH }
